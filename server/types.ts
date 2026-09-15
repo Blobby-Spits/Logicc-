@@ -115,6 +115,12 @@ export interface ComposeResult {
   difficulty: number;
 }
 
+/** PCM 24 kHz — OpenAI-GA-Realtime verlangt `audio/pcm` inkl. `rate`. */
+export interface RealtimePcmAudioFormat {
+  type: "audio/pcm";
+  rate: 24000;
+}
+
 export interface RealtimeSessionConfig {
   type: "realtime";
   model: string;
@@ -123,12 +129,12 @@ export interface RealtimeSessionConfig {
   reasoning: { effort: ReasoningEffort };
   audio: {
     input: {
-      format: { type: "audio/pcm"; rate: 24000 };
+      format: RealtimePcmAudioFormat;
       transcription: { model: string; language: string };
       turn_detection: { type: "semantic_vad" | "server_vad" };
     };
     output: {
-      format: { type: "audio/pcm" };
+      format: RealtimePcmAudioFormat;
       voice: string;
     };
   };

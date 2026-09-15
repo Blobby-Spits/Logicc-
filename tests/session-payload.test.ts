@@ -24,6 +24,13 @@ describe("session payload", () => {
     expect(session.model).toBe("gpt-realtime-2");
     expect(session.reasoning.effort).toBe("low");
     expect(session.audio.output.voice).toBe("coral");
+    expect(session.audio.input.format).toEqual({ type: "audio/pcm", rate: 24000 });
+    expect(session.audio.output.format).toEqual({ type: "audio/pcm", rate: 24000 });
+    expect(session.audio.output.format.rate).toBe(24000);
+    const clientSecretsBody = JSON.parse(JSON.stringify({ session })) as {
+      session: { audio: { output: { format: { type: string; rate: number } } } };
+    };
+    expect(clientSecretsBody.session.audio.output.format.rate).toBe(24000);
   });
 
   it("nutzt cedar für den Entscheider", () => {
