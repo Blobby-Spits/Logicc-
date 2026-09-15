@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Logicc Call Trainer</title>
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=IBM+Plex+Sans:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/src/styles.css" />
+  </head>
+  <body>
+    <div class="app">
+      <header class="top">
+        <div class="brand">
+          <span class="mark" aria-hidden="true"></span>
+          <div>
+            <p class="kicker">Realtime Sales Roleplay</p>
+            <h1>Logicc Call Trainer</h1>
+          </div>
+        </div>
+        <div class="roles" role="tablist" aria-label="Gegenstelle">
+          <button type="button" role="tab" data-role="empfang" aria-pressed="true" class="is-active">Empfang</button>
+          <button type="button" role="tab" data-role="entscheider" aria-pressed="false">Entscheider</button>
+        </div>
+        <p id="health" class="health" data-ok="false">Prüfe API …</p>
+      </header>
+
+      <section class="card setup">
+        <div class="setup-row">
+          <span class="setup-label">Nutzer</span>
+          <div class="roles compact" role="group" aria-label="SDR oder AE">
+            <button type="button" data-trainee="sdr">SDR</button>
+            <button type="button" data-trainee="ae" class="is-active" aria-pressed="true">AE</button>
+          </div>
+        </div>
+        <label class="setup-field">
+          <span class="setup-label">Szenario</span>
+          <select id="scenario"></select>
+        </label>
+        <label class="setup-field">
+          <span class="setup-label">Schwierigkeit <strong id="difficulty-value">3</strong></span>
+          <input id="difficulty" type="range" min="1" max="5" step="1" value="3" />
+        </label>
+        <div class="setup-row">
+          <span class="setup-label">Modus</span>
+          <p id="mode-chip" class="mode-chip" data-mode="roleplay">Rollenspiel</p>
+        </div>
+      </section>
+
+      <main class="grid">
+        <section id="persona-card" class="card persona" aria-live="polite"></section>
+
+        <section class="card stage">
+          <div class="stage-head">
+            <div id="status" class="status" data-status="idle"><i></i><strong>Bereit</strong></div>
+            <p class="hint">
+              Kein Sales-Chatbot: im Rollenspiel bleibt die KI in der Kundenrolle. Coaching nur auf Befehl oder über die Modus-Tasten.
+            </p>
+          </div>
+          <button type="button" id="call-toggle" class="talk">Gespräch starten</button>
+          <div class="stage-actions modes" role="group" aria-label="Betriebsmodus">
+            <button type="button" data-mode="roleplay" class="ghost is-active">Rollenspiel</button>
+            <button type="button" data-mode="coaching" class="ghost">Pause</button>
+            <button type="button" data-mode="demo" class="ghost">Demo</button>
+            <button type="button" data-mode="debrief" class="ghost">Debrief</button>
+          </div>
+          <div class="stage-actions">
+            <button type="button" id="mute-toggle" class="ghost" aria-pressed="false">Mikro stumm</button>
+            <button type="button" id="end-call" class="ghost">Beenden</button>
+          </div>
+          <p id="error" class="error" hidden></p>
+          <p class="commands">
+            Stimme: «Ring, Ring» · «Kurz raus» · «Weiter» · «Neustart» · «Schwieriger» · «Einfacher» · «Übernimm beide Rollen» ·
+            «Gespräch beenden» · «Gib mir Feedback»
+          </p>
+        </section>
+
+        <section class="card transcript-wrap">
+          <h2>Live-Transkript</h2>
+          <div id="transcript" class="transcript" aria-live="polite"></div>
+        </section>
+
+        <section class="card prompt">
+          <details>
+            <summary>Komponierter Prompt (ohne Innenperspektive) · Module unter <code>prompts/</code>, <code>modules/</code>, <code>scenarios/</code></summary>
+            <pre id="prompt-preview"></pre>
+          </details>
+        </section>
+
+        <section class="card history-wrap">
+          <h2>Letzte Gespräche (lokal)</h2>
+          <div id="history" class="history"></div>
+        </section>
+      </main>
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

@@ -1,0 +1,19 @@
+{
+  "id": "regulated-insurance",
+  "name": "Regulierte Kompositversicherung DACH",
+  "status": "stub",
+  "regulator": "BaFin-Umfeld (Deutschland), vergleichbare Aufsicht in AT/CH je nach Gesellschaft",
+  "constraints": [
+    "Dokumentations- und Nachweispflichten sind Alltag; «einfach mal in Excel» ist politisch heikel.",
+    "Neue Tools brauchen oft Datenschutz, InfoSec und Fachbereich — nicht nur den Anrufer.",
+    "Kundenrollen dürfen Unsicherheit äußern, aber keine falschen Rechtsgarantien als Fakt verkaufen."
+  ],
+  "vocabulary": [
+    "Bestand",
+    "Schaden",
+    "Vermittler",
+    "Revision",
+    "GoBD/Dokumentation nur wenn der Nutzer das Thema öffnet — nicht ungefragt belehren"
+  ],
+  "doNotInvent": "Keine konkreten Aufsichtsverfahren, Bußgelder oder internen Audit-Ergebnisse erfinden, die nicht im Szenario stehen."
+}
