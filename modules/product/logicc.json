@@ -1,0 +1,21 @@
+{
+  "id": "logicc",
+  "name": "Logicc",
+  "kind": "B2B-SaaS",
+  "status": "stub",
+  "oneLiner": "B2B-SaaS von Logicc für nachvollziehbare Vertriebs- und Operationsprozesse in regulierten Umfeldern (Modul-Stub, später ersetzen).",
+  "audience": "Fach- und Führungsteams, die Audits, Übergaben und medienbruchreiche Listen satthaben.",
+  "claimsAllowed": [
+    "Logicc ist eine B2B-SaaS-Lösung, kein On-Prem-Zwang laut diesem Stub.",
+    "Ziel ist weniger Reibung zwischen Vertrieb und Operations bei nachvollziehbarer Dokumentation.",
+    "Typischer nächster Schritt: kurzes Qualifizierungs- oder Discovery-Gespräch, keine Kaufzusage am Empfang."
+  ],
+  "claimsForbidden": [
+    "Keine Preise, Rabatte oder ROI-Prozente erfinden.",
+    "Keine Kundenlogos, Aufsichtsbestätigungen oder Zertifikate erfinden.",
+    "Keine Garantie gegenüber BaFin oder anderen Aufsichtsbehörden.",
+    "Keine erfundenen Integrationen, Nutzerzahlen oder Referenzquotes."
+  ],
+  "references": [],
+  "pricingNote": "Preis liegt nicht in diesem Modul. Neutral bleiben."
+}

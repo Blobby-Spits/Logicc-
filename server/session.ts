@@ -1,17 +1,21 @@
-import type { PersonaPublic, RealtimeSessionConfig } from "./types.ts";
+import type { PersonaPublic, ReasoningEffort, RealtimeSessionConfig } from "./types.ts";
 
-export const DEFAULT_REALTIME_MODEL = "gpt-realtime-2.1";
+export const DEFAULT_REALTIME_MODEL = "gpt-realtime-2";
+export const DEFAULT_REASONING_EFFORT: ReasoningEffort = "low";
 export const TRANSCRIPTION_MODEL = "gpt-4o-mini-transcribe";
 
-export function buildRealtimeSessionConfig(
-  persona: PersonaPublic,
-  model: string,
-): RealtimeSessionConfig {
+export function buildRealtimeSessionConfig(options: {
+  instructions: string;
+  voice: string;
+  model: string;
+  reasoningEffort: ReasoningEffort;
+}): RealtimeSessionConfig {
   return {
     type: "realtime",
-    model,
-    instructions: persona.instructions,
+    model: options.model,
+    instructions: options.instructions,
     output_modalities: ["audio"],
+    reasoning: { effort: options.reasoningEffort },
     audio: {
       input: {
         format: { type: "audio/pcm", rate: 24000 },
@@ -20,7 +24,7 @@ export function buildRealtimeSessionConfig(
       },
       output: {
         format: { type: "audio/pcm" },
-        voice: persona.voice,
+        voice: options.voice,
       },
     },
   };
@@ -31,6 +35,7 @@ export interface ClientSecretResult {
   expiresAt: number | null;
   model: string;
   personaId: string;
+  reasoningEffort: ReasoningEffort;
 }
 
 function extractSecret(payload: Record<string, unknown>): { value: string; expiresAt: number | null } {
@@ -56,10 +61,17 @@ function extractSecret(payload: Record<string, unknown>): { value: string; expir
 export async function mintClientSecret(options: {
   apiKey: string;
   model: string;
+  reasoningEffort: ReasoningEffort;
   persona: PersonaPublic;
+  instructions: string;
   safetyIdentifier: string;
 }): Promise<ClientSecretResult> {
-  const session = buildRealtimeSessionConfig(options.persona, options.model);
+  const session = buildRealtimeSessionConfig({
+    instructions: options.instructions,
+    voice: options.persona.voice,
+    model: options.model,
+    reasoningEffort: options.reasoningEffort,
+  });
   const response = await fetch("https://api.openai.com/v1/realtime/client_secrets", {
     method: "POST",
     headers: {
@@ -85,5 +97,6 @@ export async function mintClientSecret(options: {
     ...secret,
     model: options.model,
     personaId: options.persona.id,
+    reasoningEffort: options.reasoningEffort,
   };
 }

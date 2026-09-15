@@ -99,7 +99,13 @@ h1 {
   cursor: pointer;
 }
 
-.roles button.is-active[data-role="empfang"] {
+.roles button.is-active {
+  background: var(--entscheider);
+  color: #1a1004;
+}
+
+.roles button.is-active[data-role="empfang"],
+.roles button.is-active[data-trainee="sdr"] {
   background: var(--empfang);
   color: #061411;
 }
@@ -130,7 +136,7 @@ h1 {
   grid-template-areas:
     "persona stage"
     "persona transcript"
-    "prompt prompt";
+    "prompt history";
   gap: 16px;
 }
 
@@ -289,6 +295,8 @@ h1 {
 .stage-actions {
   display: flex;
   justify-content: center;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 
 .ghost {
@@ -305,6 +313,11 @@ h1 {
 .ghost.is-on {
   border-color: var(--danger);
   color: var(--danger);
+}
+
+.ghost.is-active {
+  background: rgba(208, 138, 60, 0.18);
+  border-color: var(--entscheider);
 }
 
 .error {
@@ -384,6 +397,94 @@ h1 {
   grid-area: prompt;
 }
 
+.history-wrap {
+  grid-area: history;
+}
+
+.history {
+  display: grid;
+  gap: 10px;
+}
+
+.history-item {
+  display: grid;
+  gap: 4px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+}
+
+.history-item span {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.setup {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+  align-items: end;
+  margin-bottom: 16px;
+}
+
+.setup-label {
+  display: block;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 6px;
+}
+
+.setup-field select,
+.setup-field input[type="range"] {
+  width: 100%;
+  accent-color: var(--entscheider);
+}
+
+.setup-field select {
+  background: rgba(0, 0, 0, 0.25);
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 10px 12px;
+  font: inherit;
+}
+
+.roles.compact button {
+  padding: 8px 14px;
+}
+
+.mode-chip {
+  margin: 0;
+  display: inline-flex;
+  padding: 8px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  font-size: 13px;
+}
+
+.mode-chip[data-mode="roleplay"] {
+  border-color: rgba(63, 143, 134, 0.45);
+}
+
+.mode-chip[data-mode="coaching"],
+.mode-chip[data-mode="debrief"] {
+  border-color: rgba(208, 138, 60, 0.45);
+}
+
+.commands {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+@media (max-width: 960px) {
+  .setup {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
 .prompt pre {
   white-space: pre-wrap;
   font-size: 12px;
@@ -410,6 +511,7 @@ h1 {
       "stage"
       "persona"
       "transcript"
-      "prompt";
+      "prompt"
+      "history";
   }
 }

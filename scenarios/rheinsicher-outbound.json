@@ -1,0 +1,67 @@
+{
+  "id": "rheinsicher-outbound",
+  "enabled": true,
+  "title": "Cold Outbound · RheinSicher AG",
+  "callType": "cold-outbound",
+  "direction": "outbound",
+  "traineeGoalSdr": "Durch den Empfang zu Dr. Weber und einen verbindlichen 20-Minuten-Slot.",
+  "traineeGoalAe": "Nach Durchstellung Status quo und Motiv skizzieren, nächsten belastbaren Schritt (Discovery 30 Min) sichern — kein Close.",
+  "company": {
+    "name": "RheinSicher AG",
+    "industryModule": "regulated-insurance",
+    "productModule": "logicc",
+    "size": "ca. 850 Mitarbeitende, Kompositversicherung DACH, Sitz Köln",
+    "notes": "Kein Bestandskunde von Logicc. Kein offener Vorgang. Kein Rückrufauftrag."
+  },
+  "trigger": "Öffentlich sichtbarer Ausbau der digitalen Vermittlerstrecke; Anlass ist ein Cold Call, kein Inbound.",
+  "knownToCaller": [
+    "Firmenname und Branche",
+    "Name der Assistenz am Empfang nicht zwingend bekannt",
+    "Entscheider laut Recherche: Dr. Markus Weber, Vorstand Operations"
+  ],
+  "existingSolution": "Vermittler- und Bestandsprozesse über Kernsystem plus viele Excel- und E-Mail-Schleifen (Innenlage, nicht am Empfang ausplaudern).",
+  "painPoints": [
+    "Übergaben zwischen Vertrieb, Bestand und Schaden sind schwer nachziehbar.",
+    "Vor Revision wirkt die Dokumentation lückenhaft — ohne dass das ungefragt gesagt wird."
+  ],
+  "personas": ["empfang", "entscheider"],
+  "gatekeeperFirst": true,
+  "interiorByPersona": {
+    "empfang": {
+      "statusQuo": "Nimmt Anrufe für GL/Vorstand Operations entgegen. Kennt Termindruck, keine Systemdetails.",
+      "existingSolution": "Weiß nur: «Wir haben unsere Systeme.» Keine Produktnamen nach außen.",
+      "problem": "Unqualifizierte Tool-Anrufe.",
+      "buyingMotive": null,
+      "urgency": "niedrig für den Anrufer, hoch für den Kalender von Dr. Weber",
+      "decisionPower": "Stellt durch oder nicht. Kauft nichts.",
+      "skepticism": "Viele Anbieter, oft unklar.",
+      "objections": [
+        "Schicken Sie eine Mail an die Zentrale.",
+        "Dr. Weber ist in Terminen.",
+        "Woher haben Sie die Nummer?",
+        "Wir arbeiten bereits mit Partnern."
+      ],
+      "conditionsForNextStep": "Name, Firma, ein Satz Thema, konkreter Nutzen für RheinSicher, Bitte um Verbindung — ohne Pitch."
+    },
+    "entscheider": {
+      "statusQuo": "Vorstand Operations. Vermittlerstrecke wächst, interne Übergaben bleiben Stückwerk.",
+      "workflows": "Kernsystem für Bestand; Sonderfälle und Nachweise oft in Listen und Postfächern. Quartalsbericht an den Vorstand ist mühsam.",
+      "existingSolution": "Kernversicherungssystem plus SharePoint/Excel. Kein Logicc. Ein DMS-Projekt ist intern diskutiert, nicht entschieden.",
+      "problem": "Nachvollziehbarkeit von Übergaben vor interner Revision, ohne das Haus als «non-compliant» zu framen.",
+      "businessImpact": "Wenn Nachweise fehlen, dauern Vorstands- und Revisionsfragen Tage statt Stunden. Persönlich: er will nicht als derjenige dastehen, der Operation nicht im Griff hat.",
+      "buyingMotive": "Kontrolle und Risiko reduzieren — nicht «Innovation».",
+      "urgency": "Mittel. Budgetdiskussion Q1, kein Brand. Falsche Dringlichkeit vom Anrufer nervt.",
+      "decisionPower": "Kann einen 30-Minuten-Discovery-Termin geben. Kauf nur mit CFO und InfoSec.",
+      "skepticism": "Vertriebssprache, unbelegte Referenzen, Angriffe auf das Kernsystem.",
+      "objections": [
+        "Wir haben bereits eine Lösung.",
+        "Keine Priorität in diesem Quartal.",
+        "Was kostet das?",
+        "Unterlagen per Mail.",
+        "Das muss mit IT und Datenschutz.",
+        "Wir testen intern bereits Digitalisierung."
+      ],
+      "conditionsForNextStep": "Konkreter Bezug zu Übergaben/Nachweisen, keine erfundenen Zahlen, klarer 30-Min-Slot mit Agenda. Kein Kauf am Telefon."
+    }
+  }
+}

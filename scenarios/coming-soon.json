@@ -1,0 +1,32 @@
+[
+  {
+    "id": "inbound-trial",
+    "enabled": false,
+    "title": "Inbound Trial (folgt)",
+    "callType": "inbound-trial"
+  },
+  {
+    "id": "webinar-lead",
+    "enabled": false,
+    "title": "Inbound Webinar Lead (folgt)",
+    "callType": "webinar-lead"
+  },
+  {
+    "id": "discovery",
+    "enabled": false,
+    "title": "Discovery Call (folgt)",
+    "callType": "discovery"
+  },
+  {
+    "id": "demo",
+    "enabled": false,
+    "title": "Demo (folgt)",
+    "callType": "demo"
+  },
+  {
+    "id": "follow-up",
+    "enabled": false,
+    "title": "Follow-up (folgt)",
+    "callType": "follow-up"
+  }
+]

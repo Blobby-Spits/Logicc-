@@ -1,16 +1,16 @@
 # Logicc Call Trainer
 
-Localhost-Webapp für **Cold-Call-Rollenspiele** von Logicc-Account-Executives. Du sprichst ins Mikrofon, die Gegenstelle antwortet mit OpenAI Realtime Audio (GPT Live / Realtime API, WebRTC).
+Lokal laufende Web-App für **realistische B2B-Vertriebsrollenspiele** mit OpenAI Realtime Voice (`gpt-realtime-2`, `reasoning.effort: low`). Du sprichst ins Mikrofon. Die KI ist im Rollenspiel **nur** Kunde — Empfang oder Entscheider —, kein Sales-Chatbot.
 
-v0 ist ein Gerüst: zwei Default-Personas (**Empfang**, **Entscheider**), editierbare JSON-Prompts, Rollenwechsel ohne Reload. Vollständigere Personas folgen später.
+Coaching, Demo und Debrief sind eigene Modi (UI oder Sprachbefehl).
 
 ## Start
 
-Voraussetzung: Node 20+, ein OpenAI-API-Key mit Zugriff auf die Realtime API.
+Node 20+, OpenAI-Key mit Realtime-Zugriff.
 
 ```bash
 cp .env.example .env.local
-# OPENAI_API_KEY=sk-... eintragen
+# OPENAI_API_KEY=sk-...
 
 npm install
 npm run dev
@@ -18,62 +18,55 @@ npm run dev
 
 Browser: [http://127.0.0.1:5173](http://127.0.0.1:5173)
 
-Der lange API-Key bleibt auf dem Vite-Dev-Server. Der Browser bekommt nur ein kurzlebiges Ephemeral-Token (`ek_…`) und verbindet sich per WebRTC mit `https://api.openai.com/v1/realtime/calls`.
-
-Optional:
-
 ```bash
-OPENAI_REALTIME_MODEL=gpt-realtime   # Alias statt Snapshot gpt-realtime-2.1
+OPENAI_REALTIME_MODEL=gpt-realtime-2
+OPENAI_REASONING_EFFORT=low
 npm test
 ```
 
-## Rollen wechseln
+Der lange Key bleibt auf dem Vite-Server. Der Browser bekommt ein Ephemeral-Token und verbindet per WebRTC mit `/v1/realtime/calls`.
 
-Oben **Empfang** | **Entscheider**:
+## Prinzip
 
-| Rolle        | Default-Figur                         | Datei                         |
-| ------------ | ------------------------------------- | ----------------------------- |
-| Empfang      | Sandra Keller, Gatekeeperin Nordwerk  | `personas/empfang.json`       |
-| Entscheider  | Dr. Markus Weber, Geschäftsführer     | `personas/entscheider.json`   |
+Trennung der Concerns — **nicht** alles in einen Global-Prompt backen:
 
-Gemeinsamer Szenario-Rahmen: `personas/context.json` (Logicc AE ruft Nordwerk an; Angebot ist Platzhalter).
+| Schicht | Ort |
+| --- | --- |
+| Simulationsregeln, Stimme, Wissensgrenzen | `prompts/core-simulation.md` |
+| SDR- vs. AE-Erwartung | `prompts/sales-sdr.md`, `prompts/sales-ae.md` |
+| Gesprächslogik, VMZTA, RRM | `prompts/conversation-logic.md` |
+| Empfang / Entscheider | `prompts/gatekeeper.md`, `prompts/decision-maker.md` |
+| Modi | `prompts/modes/*.md` |
+| Dynamisches Szenario | `scenarios/*.json` |
+| Produkt | `modules/product/logicc.json` (Stub) |
+| Branche | `modules/industry/regulated-insurance.json` (Stub) |
+| Charakterkarten | `personas/empfang.json`, `personas/entscheider.json` |
 
-- **Vor dem Gespräch:** die aktive Rolle bestimmt Token-Session und Stimme (`coral` / `cedar`).
-- **Während des Gesprächs:** `session.update` + kurze Durchstellungs-Cue, ohne Seiten-Reload. Die **Stimme bleibt**, sobald die Session schon Audio erzeugt hat (Limit der Realtime API). Für eine neue Stimme: auflegen und neu starten.
+Der Server komponiert die Session-Instructions mit kurzen, benannten Abschnitten. Die **Innenperspektive** des Entscheiders steht nur im Szenario und nicht auf der Persona-Karte.
 
-Typischer Ablauf zum Üben: Empfang → durchgestellt fühlen → Tab **Entscheider**.
+## Bedienung
 
-## UI-Zustände
+- **SDR | AE** — welche Leistung die Simulation (und das Debrief) erwartet.
+- **Szenario** — Default: Cold Outbound RheinSicher AG (regulierte Kompositversicherung). Weitere Gesprächsarten sind als Stub im Dropdown.
+- **Schwierigkeit 1–5**
+- **Empfang | Entscheider** — Gegenstelle; Wechsel mitten im Call per `session.update`.
+- **Rollenspiel / Pause / Demo / Debrief**
 
-Bereit · Verbinde · Zuhören · Du sprichst · Gegenstelle spricht · Rolle wechselt · Fehler (Mikro verweigert, fehlender Key, OpenAI-Fehler).
+Sprachbefehle: «Ring, Ring» · «Kurz raus aus dem Gespräch» · «Weiter» · «Neustart» · «Mach es schwieriger/einfacher» · «Übernimm beide Rollen» · «Gespräch beenden» · «Gib mir Feedback».
 
-Gespräch ist **vollduplex** (Semantic VAD), nicht Push-to-Talk. Großer Button startet/beendet den Call; optional Mikro stumm.
+Live-Transkript und lokale Gesprächshistorie (Browser `localStorage`).
 
-## Architektur
+## Default-Szenario
 
-```
-Browser  --POST /api/session-->  Vite-Plugin (OPENAI_API_KEY)
-                                 --POST /v1/realtime/client_secrets--> OpenAI
-Browser  <-- ek_ token ---------
-Browser  --SDP WebRTC---------->  /v1/realtime/calls
-Events (Transkript, session.update) über Data-Channel `oai-events`
-```
+Logicc-AE oder -SDR ruft **RheinSicher AG** an (BaFin-Umfeld). Zuerst Sandra Keller (Empfang), dann Dr. Markus Weber (Vorstand Operations). Verborgenes Kaufmotiv des Entscheiders: Kontrolle / Risiko, nicht «Innovation». Produktclaims nur aus dem Logicc-Stub — nichts erfinden.
 
-Personas liegen als JSON, werden serverseitig geladen, an `/api/personas` gegeben und in die Session-Instructions geschrieben.
+## Limits
 
-## Bekannte Limits (v0)
-
-- Prompts sind **Platzhalter**. Inhalt und Härte später schärfen; UI zeigt den Rohprompt unter dem Klapptext.
-- Realtime-Session max. ~60 Minuten; Ephemeral-Tokens sind kurzlebig — pro Gespräch neu minten.
+- Produkt- und Branchenmodule sind **Stubs**; Dateien ersetzen, ohne `core-simulation.md` umzuschreiben.
 - Stimme nach erstem Audio in der Session nicht wechselbar.
-- Transkript ist eine Hilfe, kein juristisches Call-Recording.
-- Localhost / `127.0.0.1` (Mikrofon-Permission). Nicht als statische Netlify-Seite deployen: der Token-Endpoint braucht eine Server-Funktion. Intendierter Name, falls später Functions: `draft-logicc-call-trainer-v1`.
-- Ohne gültigen Key startet die UI, der Call endet mit einer deutschen Fehlermeldung.
+- Session ca. 60 Min. «Ring, Ring» ohne Klick startet das Mikrofon in manchen Browsern nicht — erst «Gespräch starten».
+- Localhost; nicht als reine Netlify-Statikseite. Intendierter Name später: `draft-logicc-call-trainer-v1`.
 
 ## xAI
 
-Umgesetzt ist **OpenAI Realtime** (WebRTC). xAI hat in den Grok-Produkten Voice, aber keine vergleichbare öffentliche Browser-Realtime-API mit Ephemeral-WebRTC wie OpenAI. Kein Blocker — OpenAI ist der Pfad.
-
-## Prompts als Nächstes
-
-Erwartet: konkretes Logicc-Angebot, Einwandbibliothek, Scoring. Bis dahin Dateien in `personas/` editieren und Dev-Server neu laden (JSON wird beim Request gelesen).
+Umgesetzt ist OpenAI Realtime. xAI hat keine vergleichbare öffentliche Browser-WebRTC-API.

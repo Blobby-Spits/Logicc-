@@ -1,11 +1,14 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { createHash } from "node:crypto";
-import { isPersonaId, loadAllPersonas, loadPersona } from "./personas.ts";
+import { buildCatalog } from "./catalog.ts";
+import { composeSession, parseComposeInput } from "./compose.ts";
 import { mintClientSecret } from "./session.ts";
+import type { ReasoningEffort } from "./types.ts";
 
 export interface ApiContext {
   apiKey: string;
   model: string;
+  reasoningEffort: ReasoningEffort;
 }
 
 export interface ApiResult {
@@ -30,35 +33,38 @@ export async function handleApiRequest(
         ok: true,
         hasApiKey: Boolean(ctx.apiKey),
         model: ctx.model,
+        reasoningEffort: ctx.reasoningEffort,
       },
     };
   }
 
-  if (method === "GET" && pathname === "/api/personas") {
-    const { context, personas } = loadAllPersonas();
-    return {
-      status: 200,
-      body: {
-        context: {
-          id: context.id,
-          locale: context.locale,
-          userRole: context.userRole,
-          prospect: context.prospect,
-        },
-        personas,
-      },
-    };
+  if (method === "GET" && (pathname === "/api/catalog" || pathname === "/api/personas")) {
+    return { status: 200, body: buildCatalog() };
+  }
+
+  if (method === "POST" && pathname === "/api/compose") {
+    try {
+      const input = parseComposeInput(body);
+      const flags = body && typeof body === "object" ? (body as { opening?: boolean; transfer?: boolean }) : {};
+      const composed = composeSession(input, {
+        opening: Boolean(flags.opening),
+        transfer: Boolean(flags.transfer),
+      });
+      return { status: 200, body: composed };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Compose fehlgeschlagen.";
+      const status = message.includes("personaId") ? 400 : 500;
+      return { status, body: { error: message } };
+    }
   }
 
   if (method === "POST" && pathname === "/api/session") {
-    const personaId =
-      body && typeof body === "object" && "personaId" in body ? (body as { personaId: unknown }).personaId : undefined;
-
-    if (!isPersonaId(personaId)) {
-      return {
-        status: 400,
-        body: { error: "personaId muss «empfang» oder «entscheider» sein." },
-      };
+    let composed;
+    try {
+      composed = composeSession(parseComposeInput(body), { opening: true });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Ungültige Session-Anfrage.";
+      return { status: 400, body: { error: message } };
     }
 
     if (!ctx.apiKey) {
@@ -72,14 +78,28 @@ export async function handleApiRequest(
     }
 
     try {
-      const persona = loadPersona(personaId);
       const secret = await mintClientSecret({
         apiKey: ctx.apiKey,
         model: ctx.model,
-        persona,
+        reasoningEffort: ctx.reasoningEffort,
+        persona: composed.persona,
+        instructions: composed.instructions,
         safetyIdentifier: safetyIdentifier(),
       });
-      return { status: 200, body: secret };
+      return {
+        status: 200,
+        body: {
+          ...secret,
+          instructions: composed.instructions,
+          preview: composed.preview,
+          cue: composed.cue,
+          persona: composed.persona,
+          scenario: composed.scenario,
+          mode: composed.mode,
+          traineeRole: composed.traineeRole,
+          difficulty: composed.difficulty,
+        },
+      };
     } catch (error) {
       const message = error instanceof Error ? error.message : "Token konnte nicht erzeugt werden.";
       return { status: 502, body: { error: message } };
@@ -109,8 +129,7 @@ function readBody(req: IncomingMessage): Promise<unknown> {
 }
 
 function pathnameOf(url: string | undefined): string {
-  const path = (url ?? "/").split("?")[0] ?? "/";
-  return path;
+  return (url ?? "/").split("?")[0] ?? "/";
 }
 
 export function createApiMiddleware(ctx: ApiContext) {

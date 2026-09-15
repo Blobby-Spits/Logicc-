@@ -1,4 +1,4 @@
-import type { CallStatus, Persona, TranscriptTurn } from "./types.ts";
+import type { CallStatus, TranscriptTurn } from "./types.ts";
 
 const REALTIME_CALLS_URL = "https://api.openai.com/v1/realtime/calls";
 
@@ -6,7 +6,7 @@ export interface RealtimeHandlers {
   onStatus: (status: CallStatus) => void;
   onTranscript: (turns: TranscriptTurn[]) => void;
   onError: (message: string) => void;
-  onPersonaApplied: (persona: Persona) => void;
+  onUserUtterance?: (text: string) => void;
 }
 
 function waitForIce(pc: RTCPeerConnection, timeoutMs = 2500): Promise<void> {
@@ -51,7 +51,7 @@ export class RealtimeCall {
     return this.muted;
   }
 
-  async connect(ephemeralKey: string, persona: Persona): Promise<void> {
+  async connect(ephemeralKey: string, config: { instructions: string; cue: string; reasoningEffort?: string }): Promise<void> {
     await this.disconnect();
     this.closing = false;
     this.turns = [];
@@ -152,16 +152,16 @@ export class RealtimeCall {
     await pc.setRemoteDescription({ type: "answer", sdp: answerSdp });
     await opened;
 
-    this.sendSessionUpdate(persona, { opening: true });
-    this.handlers.onPersonaApplied(persona);
+    this.sendSessionUpdate(config.instructions, config.cue, config.reasoningEffort);
     this.handlers.onStatus("listening");
   }
 
-  applyPersona(persona: Persona): void {
+  applyInstructions(instructions: string, cue: string, note: string, reasoningEffort = "low"): void {
     if (!this.isConnected) return;
     this.handlers.onStatus("switching");
-    this.pushTurn("system", `Rolle wechselt zu ${persona.name} (${persona.title}).`);
-    this.sendSessionUpdate(persona, { opening: false, transfer: true });
+    this.pushTurn("system", note);
+    this.send({ type: "response.cancel" });
+    this.sendSessionUpdate(instructions, cue, reasoningEffort);
   }
 
   setMuted(muted: boolean): void {
@@ -184,18 +184,23 @@ export class RealtimeCall {
     this.muted = false;
   }
 
+  snapshot(): TranscriptTurn[] {
+    return this.turns.filter((turn) => !turn.live);
+  }
+
   private send(event: Record<string, unknown>): void {
     if (this.dc?.readyState !== "open") return;
     this.dc.send(JSON.stringify(event));
   }
 
-  private sendSessionUpdate(persona: Persona, options: { opening: boolean; transfer?: boolean }): void {
+  private sendSessionUpdate(instructions: string, cue: string, reasoningEffort = "low"): void {
     this.send({
       type: "session.update",
       session: {
         type: "realtime",
-        instructions: persona.instructions,
+        instructions,
         output_modalities: ["audio"],
+        reasoning: { effort: reasoningEffort },
         audio: {
           input: {
             transcription: { model: "gpt-4o-mini-transcribe", language: "de" },
@@ -204,10 +209,6 @@ export class RealtimeCall {
         },
       },
     });
-
-    const cue = options.transfer
-      ? `${persona.transferInHint} Melde dich jetzt als ${persona.name}. Nicht die vorherige Person weitersprechen.`
-      : `${persona.openingLineHint} Das Telefon klingelt, du nimmst ab. Danach zuhören.`;
 
     this.send({
       type: "response.create",
@@ -275,7 +276,10 @@ export class RealtimeCall {
         text: nextText.trim(),
         live: !type.endsWith("completed"),
       });
-      if (type.endsWith("completed")) this.userLiveId = null;
+      if (type.endsWith("completed")) {
+        this.userLiveId = null;
+        if (nextText) this.handlers.onUserUtterance?.(nextText);
+      }
       return;
     }
 

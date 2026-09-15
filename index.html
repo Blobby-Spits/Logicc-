@@ -19,18 +19,38 @@
         <div class="brand">
           <span class="mark" aria-hidden="true"></span>
           <div>
-            <p class="kicker">Logicc AE · Cold Call</p>
+            <p class="kicker">Realtime Sales Roleplay</p>
             <h1>Logicc Call Trainer</h1>
           </div>
         </div>
-        <div class="roles" role="tablist" aria-label="Gegenstelle wählen">
-          <button type="button" role="tab" data-role="empfang" aria-pressed="true" class="is-active">
-            Empfang
-          </button>
+        <div class="roles" role="tablist" aria-label="Gegenstelle">
+          <button type="button" role="tab" data-role="empfang" aria-pressed="true" class="is-active">Empfang</button>
           <button type="button" role="tab" data-role="entscheider" aria-pressed="false">Entscheider</button>
         </div>
         <p id="health" class="health" data-ok="false">Prüfe API …</p>
       </header>
+
+      <section class="card setup">
+        <div class="setup-row">
+          <span class="setup-label">Nutzer</span>
+          <div class="roles compact" role="group" aria-label="SDR oder AE">
+            <button type="button" data-trainee="sdr">SDR</button>
+            <button type="button" data-trainee="ae" class="is-active" aria-pressed="true">AE</button>
+          </div>
+        </div>
+        <label class="setup-field">
+          <span class="setup-label">Szenario</span>
+          <select id="scenario"></select>
+        </label>
+        <label class="setup-field">
+          <span class="setup-label">Schwierigkeit <strong id="difficulty-value">3</strong></span>
+          <input id="difficulty" type="range" min="1" max="5" step="1" value="3" />
+        </label>
+        <div class="setup-row">
+          <span class="setup-label">Modus</span>
+          <p id="mode-chip" class="mode-chip" data-mode="roleplay">Rollenspiel</p>
+        </div>
+      </section>
 
       <main class="grid">
         <section id="persona-card" class="card persona" aria-live="polite"></section>
@@ -38,25 +58,43 @@
         <section class="card stage">
           <div class="stage-head">
             <div id="status" class="status" data-status="idle"><i></i><strong>Bereit</strong></div>
-            <p class="hint">Vollduplex: du sprichst, die Gegenstelle antwortet live. Rolle oben wechseln geht mitten im Gespräch.</p>
+            <p class="hint">
+              Kein Sales-Chatbot: im Rollenspiel bleibt die KI in der Kundenrolle. Coaching nur auf Befehl oder über die Modus-Tasten.
+            </p>
           </div>
           <button type="button" id="call-toggle" class="talk">Gespräch starten</button>
+          <div class="stage-actions modes" role="group" aria-label="Betriebsmodus">
+            <button type="button" data-mode="roleplay" class="ghost is-active">Rollenspiel</button>
+            <button type="button" data-mode="coaching" class="ghost">Pause</button>
+            <button type="button" data-mode="demo" class="ghost">Demo</button>
+            <button type="button" data-mode="debrief" class="ghost">Debrief</button>
+          </div>
           <div class="stage-actions">
             <button type="button" id="mute-toggle" class="ghost" aria-pressed="false">Mikro stumm</button>
+            <button type="button" id="end-call" class="ghost">Beenden</button>
           </div>
           <p id="error" class="error" hidden></p>
+          <p class="commands">
+            Stimme: «Ring, Ring» · «Kurz raus» · «Weiter» · «Neustart» · «Schwieriger» · «Einfacher» · «Übernimm beide Rollen» ·
+            «Gespräch beenden» · «Gib mir Feedback»
+          </p>
         </section>
 
         <section class="card transcript-wrap">
-          <h2>Letzte Turns</h2>
+          <h2>Live-Transkript</h2>
           <div id="transcript" class="transcript" aria-live="polite"></div>
         </section>
 
         <section class="card prompt">
           <details>
-            <summary>Systemprompt (v0-Platzhalter, editierbar in <code>personas/</code>)</summary>
+            <summary>Komponierter Prompt (ohne Innenperspektive) · Module unter <code>prompts/</code>, <code>modules/</code>, <code>scenarios/</code></summary>
             <pre id="prompt-preview"></pre>
           </details>
+        </section>
+
+        <section class="card history-wrap">
+          <h2>Letzte Gespräche (lokal)</h2>
+          <div id="history" class="history"></div>
         </section>
       </main>
     </div>
