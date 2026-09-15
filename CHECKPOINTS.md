@@ -1,5 +1,10 @@
 # CHECKPOINTS
 
+## CP-004 [15.09.2026 - 22:42]
+- `buildRealtimeSessionConfig` setzt `session.audio.output.format.rate` auf `24000` (OpenAI GA PCM, analog zum Input).
+- Typ `RealtimePcmAudioFormat` in `server/types.ts` für Input- und Output-Format; Konstante `PCM_AUDIO_FORMAT` in `server/session.ts`.
+- Unit-Test prüft den Client-Secrets-Payload-Pfad `session.audio.output.format.rate`.
+
 ## CP-003 [15.09.2026 - 19:33]
 - Modulare Prompt-Architektur: Core, SDR/AE, Szenario, Produkt- und Branchen-Stub, getrennte Modi (Rollenspiel, Coaching, Demo, Debrief).
 - Default-Szenario RheinSicher Outbound (regulierte Versicherung) mit verborgener Entscheider-Innenlage; Empfang/Entscheider bleiben.

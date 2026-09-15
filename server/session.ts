@@ -3,6 +3,8 @@ import type { PersonaPublic, ReasoningEffort, RealtimeSessionConfig } from "./ty
 export const DEFAULT_REALTIME_MODEL = "gpt-realtime-2";
 export const DEFAULT_REASONING_EFFORT: ReasoningEffort = "low";
 export const TRANSCRIPTION_MODEL = "gpt-4o-mini-transcribe";
+/** GA-Realtime-PCM ist für Input und Output fest auf 24 kHz. */
+export const PCM_AUDIO_FORMAT = { type: "audio/pcm", rate: 24000 } as const;
 
 export function buildRealtimeSessionConfig(options: {
   instructions: string;
@@ -18,12 +20,12 @@ export function buildRealtimeSessionConfig(options: {
     reasoning: { effort: options.reasoningEffort },
     audio: {
       input: {
-        format: { type: "audio/pcm", rate: 24000 },
+        format: PCM_AUDIO_FORMAT,
         transcription: { model: TRANSCRIPTION_MODEL, language: "de" },
         turn_detection: { type: "semantic_vad" },
       },
       output: {
-        format: { type: "audio/pcm" },
+        format: PCM_AUDIO_FORMAT,
         voice: options.voice,
       },
     },
