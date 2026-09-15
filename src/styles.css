@@ -40,9 +40,9 @@ body {
 }
 
 .top {
-  display: grid;
-  grid-template-columns: 1fr auto auto;
-  gap: 16px 24px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 20px;
   align-items: center;
   margin-bottom: 28px;
 }
@@ -51,6 +51,7 @@ body {
   display: flex;
   gap: 14px;
   align-items: center;
+  margin-right: auto;
 }
 
 .mark {
@@ -110,9 +111,9 @@ h1 {
 
 .health {
   margin: 0;
+  flex: 1 0 100%;
   font-size: 12px;
   color: var(--muted);
-  justify-self: end;
 }
 
 .health[data-ok="true"] {
@@ -322,10 +323,18 @@ h1 {
 .prompt summary {
   margin: 0 0 12px;
   font-size: 14px;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  letter-spacing: 0.04em;
   color: var(--muted);
   font-weight: 600;
+}
+
+.transcript-wrap h2 {
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.prompt summary {
+  cursor: pointer;
 }
 
 .transcript {
@@ -391,12 +400,8 @@ h1 {
 }
 
 @media (max-width: 860px) {
-  .top {
-    grid-template-columns: 1fr;
-  }
-
-  .health {
-    justify-self: start;
+  .stage-head {
+    flex-direction: column;
   }
 
   .grid {
