@@ -28,12 +28,12 @@ Der lange Key bleibt auf dem Server. Der Browser bekommt ein Ephemeral-Token und
 
 ## Vercel (Hobby)
 
-Lokal läuft `/api/*` über das Vite-Plugin. Auf Vercel übernimmt der Node-Catch-all `api/[...path].ts` dieselbe Logik (`handleApiRequest`). Build: Vite → `dist`. Function-Timeout: 10 Sekunden.
+Lokal läuft `/api/*` über das Vite-Plugin. Auf Vercel übernehmen `api/health.js`, `api/catalog.js`, `api/compose.js` und `api/session.js` dieselbe Logik (`handleApiRequest` via `api/_handler.js`). Build: Vite → `dist`. Function-Timeout: 10 Sekunden.
 
 1. Repo auf Vercel importieren (Framework Vite, Output `dist`, Node 20+).
 2. Umgebungsvariablen für **Production und Preview** setzen:
    - `OPENAI_API_KEY` (pflicht)
-   - `OPENAI_REALTIME_MODEL` (optional, Default `gpt-realtime-2`)
+   - `OPENAI_REALTIME_MODEL` (optional, Default `gpt-realtime-2`, niemals den API-Key hier eintragen)
    - `OPENAI_REASONING_EFFORT` (optional, Default `low`)
 3. Deployen. Nach Env-Änderungen neu deployen.
 
