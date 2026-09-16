@@ -39,6 +39,11 @@ describe("vercel api adapter", () => {
     expect(ctx.apiKey).toBe("sk-test");
     expect(ctx.model).toBe("gpt-realtime-2");
     expect(ctx.reasoningEffort).toBe("low");
+    const leaked = createApiContext({
+      OPENAI_API_KEY: "sk-test",
+      OPENAI_REALTIME_MODEL: "sk-should-not-become-model",
+    });
+    expect(leaked.model).toBe("gpt-realtime-2");
   });
 
   it("findet Prompt-Dateien über process.cwd()", () => {

@@ -87,10 +87,14 @@ var DEFAULT_DIFFICULTY = 3;
 function parseReasoningEffort(value) {
   return REASONING_EFFORTS.includes(value) ? value : DEFAULT_REASONING_EFFORT;
 }
+function looksLikeSecret(value) {
+  return /^(sk-|ek_)/.test(value);
+}
 function createApiContext(env = process.env) {
+  const modelRaw = env.OPENAI_REALTIME_MODEL ?? DEFAULT_REALTIME_MODEL;
   return {
     apiKey: env.OPENAI_API_KEY ?? "",
-    model: env.OPENAI_REALTIME_MODEL ?? DEFAULT_REALTIME_MODEL,
+    model: looksLikeSecret(modelRaw) ? DEFAULT_REALTIME_MODEL : modelRaw,
     reasoningEffort: parseReasoningEffort(env.OPENAI_REASONING_EFFORT)
   };
 }

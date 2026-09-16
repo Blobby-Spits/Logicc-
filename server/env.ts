@@ -8,10 +8,15 @@ export function parseReasoningEffort(value: string | undefined): ReasoningEffort
     : DEFAULT_REASONING_EFFORT;
 }
 
+function looksLikeSecret(value: string): boolean {
+  return /^(sk-|ek_)/.test(value);
+}
+
 export function createApiContext(env: Record<string, string | undefined> = process.env): ApiContext {
+  const modelRaw = env.OPENAI_REALTIME_MODEL ?? DEFAULT_REALTIME_MODEL;
   return {
     apiKey: env.OPENAI_API_KEY ?? "",
-    model: env.OPENAI_REALTIME_MODEL ?? DEFAULT_REALTIME_MODEL,
+    model: looksLikeSecret(modelRaw) ? DEFAULT_REALTIME_MODEL : modelRaw,
     reasoningEffort: parseReasoningEffort(env.OPENAI_REASONING_EFFORT),
   };
 }
