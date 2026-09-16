@@ -5,7 +5,7 @@
   "outputDirectory": "dist",
   "functions": {
     "api/*.ts": {
-      "includeFiles": "{personas,scenarios,prompts,modules}/**/*.{json,md}",
+      "includeFiles": "{personas,scenarios,prompts,modules}/**",
       "maxDuration": 10
     }
   },

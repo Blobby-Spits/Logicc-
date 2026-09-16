@@ -1,6 +1,7 @@
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import { EMBEDDED_ASSETS } from "../server/assets.ts";
 import { parseJsonBody, resolveApiPathname } from "../server/http.ts";
 import { createApiContext, parseReasoningEffort } from "../server/env.ts";
 import { resolveDataRoot } from "../server/load.ts";
@@ -44,6 +45,13 @@ describe("vercel api adapter", () => {
     const root = resolveDataRoot();
     expect(existsSync(join(root, "personas", "empfang.json"))).toBe(true);
     expect(existsSync(join(root, "prompts", "core-simulation.md"))).toBe(true);
+  });
+
+  it("spiegelt Disk-Dateien in EMBEDDED_ASSETS", () => {
+    expect(Object.keys(EMBEDDED_ASSETS).length).toBeGreaterThan(10);
+    for (const [rel, content] of Object.entries(EMBEDDED_ASSETS)) {
+      expect(content).toBe(readFileSync(join(process.cwd(), rel), "utf8"));
+    }
   });
 
   it("bedient health über den Vercel-Adapter", async () => {

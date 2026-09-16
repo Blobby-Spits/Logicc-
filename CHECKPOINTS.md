@@ -1,7 +1,7 @@
 # CHECKPOINTS
 
 ## CP-005 [16.09.2026 - 10:00]
-- Produktions-Fix für logicc-peach: explizite Vercel-Routen `api/health|catalog|personas|compose|session` plus Catch-all, alle rufen `handleApiRequest`.
+- Explizite `/api/*`-Functions nutzen den Web-`fetch`-Handler; Personas/Prompts sind in `server/assets.ts` eingebettet, damit Serverless nicht von `fs`+`includeFiles` abhängt.
 - `vercel.json`: Vite → `dist`, SPA-Rewrite ohne `/api/*`, `includeFiles` für JSON/MD, Hobby `maxDuration` 10.
 - Serverless findet Personas/Prompts über `process.cwd()` / `LAMBDA_TASK_ROOT`; README mit `OPENAI_API_KEY` plus optionalem Modell und Reasoning-Effort.
 
