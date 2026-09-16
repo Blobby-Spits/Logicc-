@@ -28,16 +28,24 @@ export async function handleVercelApi(input: VercelApiInput): Promise<ApiResult>
 }
 
 export async function vercelFetch(request: Request): Promise<Response> {
-  const method = request.method.toUpperCase();
-  let body: unknown = {};
-  if (method === "POST" || method === "PUT" || method === "PATCH") {
-    body = parseJsonBody(await request.text());
+  try {
+    const method = request.method.toUpperCase();
+    let body: unknown = {};
+    if (method === "POST" || method === "PUT" || method === "PATCH") {
+      body = parseJsonBody(await request.text());
+    }
+    const result = await handleApiRequest(method, resolveApiPathname(request.url), body, createApiContext());
+    return Response.json(result.body, {
+      status: result.status,
+      headers: { "Cache-Control": "no-store" },
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Function error";
+    return Response.json(
+      { error: message },
+      { status: 500, headers: { "Cache-Control": "no-store" } },
+    );
   }
-  const result = await handleApiRequest(method, resolveApiPathname(request.url), body, createApiContext());
-  return Response.json(result.body, {
-    status: result.status,
-    headers: { "Cache-Control": "no-store" },
-  });
 }
 
 export async function sendNode(req: VercelRequest, res: VercelResponse, fallbackPath: string): Promise<void> {

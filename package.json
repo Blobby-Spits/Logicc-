@@ -6,7 +6,7 @@
   "description": "Logicc AE Cold-Call-Rollenspiel mit OpenAI Realtime Audio",
   "scripts": {
     "dev": "vite",
-    "build": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.node.json && vite build",
+    "build": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.node.json && vite build && node scripts/bundle-api.mjs",
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest"
@@ -17,6 +17,7 @@
   "devDependencies": {
     "@types/node": "^24.5.2",
     "@vercel/node": "^13.0.1",
+    "esbuild": "^0.28.2",
     "typescript": "^5.9.2",
     "vite": "^7.1.7",
     "vitest": "^3.2.4"

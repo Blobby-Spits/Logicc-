@@ -4,7 +4,7 @@
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
   "functions": {
-    "api/*.ts": {
+    "api/*.js": {
       "includeFiles": "{personas,scenarios,prompts,modules}/**",
       "maxDuration": 10
     }
