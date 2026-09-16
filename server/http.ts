@@ -72,7 +72,7 @@ export async function handleApiRequest(
         status: 503,
         body: {
           error:
-            "OPENAI_API_KEY fehlt. Kopiere .env.example nach .env.local, trage den Key ein und starte npm run dev neu.",
+            "OPENAI_API_KEY fehlt. Lokal: .env.example nach .env.local kopieren und npm run dev neu starten. Auf Vercel: OPENAI_API_KEY in den Projekt-Umgebungsvariablen (Production und Preview) setzen und neu deployen.",
         },
       };
     }
@@ -128,8 +128,34 @@ function readBody(req: IncomingMessage): Promise<unknown> {
   });
 }
 
-function pathnameOf(url: string | undefined): string {
-  return (url ?? "/").split("?")[0] ?? "/";
+export function parseJsonBody(raw: unknown): unknown {
+  if (raw == null || raw === "") return {};
+  if (typeof raw === "string") {
+    const trimmed = raw.trim();
+    if (!trimmed) return {};
+    return JSON.parse(trimmed) as unknown;
+  }
+  return raw;
+}
+
+export function resolveApiPathname(url: string | undefined): string {
+  const raw = url ?? "/";
+  let pathname: string;
+  if (/^https?:\/\//i.test(raw)) {
+    try {
+      pathname = new URL(raw).pathname;
+    } catch {
+      pathname = raw.split("?")[0] ?? "/";
+    }
+  } else {
+    pathname = raw.split("?")[0] ?? "/";
+  }
+  if (!pathname.startsWith("/")) pathname = `/${pathname}`;
+  if (pathname.length > 1 && pathname.endsWith("/")) {
+    pathname = pathname.slice(0, -1);
+  }
+  if (pathname === "/api" || pathname.startsWith("/api/")) return pathname;
+  return pathname === "/" ? "/api" : `/api${pathname}`;
 }
 
 export function createApiMiddleware(ctx: ApiContext) {
@@ -138,7 +164,7 @@ export function createApiMiddleware(ctx: ApiContext) {
     res: ServerResponse,
     next: () => void,
   ): Promise<void> {
-    const pathname = pathnameOf(req.url);
+    const pathname = resolveApiPathname(req.url);
     if (!pathname.startsWith("/api/")) {
       next();
       return;

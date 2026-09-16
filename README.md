@@ -24,7 +24,20 @@ OPENAI_REASONING_EFFORT=low
 npm test
 ```
 
-Der lange Key bleibt auf dem Vite-Server. Der Browser bekommt ein Ephemeral-Token und verbindet per WebRTC mit `/v1/realtime/calls`.
+Der lange Key bleibt auf dem Server. Der Browser bekommt ein Ephemeral-Token und verbindet per WebRTC mit `/v1/realtime/calls`.
+
+## Vercel (Hobby)
+
+Lokal läuft `/api/*` über das Vite-Plugin. Auf Vercel übernimmt der Node-Catch-all `api/[...path].ts` dieselbe Logik (`handleApiRequest`). Build: Vite → `dist`. Function-Timeout: 10 Sekunden.
+
+1. Repo auf Vercel importieren (Framework Vite, Output `dist`, Node 20+).
+2. Umgebungsvariablen für **Production und Preview** setzen:
+   - `OPENAI_API_KEY` (pflicht)
+   - `OPENAI_REALTIME_MODEL` (optional, Default `gpt-realtime-2`)
+   - `OPENAI_REASONING_EFFORT` (optional, Default `low`)
+3. Deployen. Nach Env-Änderungen neu deployen.
+
+`npm run dev` bleibt unverändert für die lokale Arbeit.
 
 ## Prinzip
 
@@ -65,7 +78,7 @@ Logicc-AE oder -SDR ruft **RheinSicher AG** an (BaFin-Umfeld). Zuerst Sandra Kel
 - Produkt- und Branchenmodule sind **Stubs**; Dateien ersetzen, ohne `core-simulation.md` umzuschreiben.
 - Stimme nach erstem Audio in der Session nicht wechselbar.
 - Session ca. 60 Min. «Ring, Ring» ohne Klick startet das Mikrofon in manchen Browsern nicht — erst «Gespräch starten».
-- Localhost; nicht als reine Netlify-Statikseite. Intendierter Name später: `draft-logicc-call-trainer-v1`.
+- Nicht als reine Statikseite deployen: `/api/health`, `/api/catalog`, `/api/compose` und `/api/session` brauchen die Vercel-Funktion.
 
 ## xAI
 

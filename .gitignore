@@ -9,6 +9,7 @@ dist
 .DS_Store
 coverage
 .netlify
+.vercel
 .idea
 .vscode/*
 !.vscode/extensions.json
