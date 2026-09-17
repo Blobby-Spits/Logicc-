@@ -9,6 +9,7 @@ import type {
 } from "./types.ts";
 import { APP_MODES, DEFAULT_DIFFICULTY, DEFAULT_MODE, DEFAULT_SCENARIO_ID, DEFAULT_TRAINEE_ROLE, TRAINEE_ROLES } from "./types.ts";
 import { isPersonaId } from "./load.ts";
+import { clampHandoff } from "../shared/handoff.ts";
 
 function clampDifficulty(value: unknown): number {
   const n = typeof value === "number" ? value : Number(value);
@@ -27,12 +28,14 @@ export function parseComposeInput(body: unknown): ComposeInput {
     : DEFAULT_TRAINEE_ROLE;
   const mode = APP_MODES.includes(raw.mode as AppMode) ? (raw.mode as AppMode) : DEFAULT_MODE;
   const scenarioId = typeof raw.scenarioId === "string" && raw.scenarioId ? raw.scenarioId : DEFAULT_SCENARIO_ID;
+  const handoffRaw = typeof raw.handoff === "string" ? clampHandoff(raw.handoff) : "";
   return {
     scenarioId,
     personaId,
     traineeRole,
     mode,
     difficulty: clampDifficulty(raw.difficulty),
+    handoff: personaId === "entscheider" && handoffRaw ? handoffRaw : undefined,
   };
 }
 
@@ -69,7 +72,11 @@ function stripInterior(instructions: string): string {
   );
 }
 
-function modeCue(mode: AppMode, persona: PersonaPublic, options: { opening: boolean; transfer: boolean }): string {
+function modeCue(
+  mode: AppMode,
+  persona: PersonaPublic,
+  options: { opening: boolean; transfer: boolean; handoff?: string },
+): string {
   if (mode === "coaching") {
     return "Coaching-Pause. Kurz raus. Gib das Fünf-Punkte-Coaching zum bisherigen Gespräch. Danach auf Weiter warten.";
   }
@@ -80,12 +87,23 @@ function modeCue(mode: AppMode, persona: PersonaPublic, options: { opening: bool
     return "Das Gespräch ist beendet. Starte das Debrief im vorgegebenen Format. Keine Kundenrolle mehr.";
   }
   if (options.transfer) {
-    return `${persona.transferInHint} Melde dich als ${persona.name}. Nicht die vorherige Person weitersprechen. Danach zuhören.`;
+    const handoffNote = options.handoff ? ` Du weißt intern nur: «${options.handoff}».` : "";
+    return `${persona.transferInHint} Melde dich als ${persona.name}.${handoffNote} Nicht die vorherige Person weitersprechen. Danach zuhören.`;
   }
   if (options.opening) {
     return `${persona.openingLineHint} Das Telefon klingelt, du nimmst in der Kundenrolle ab. Danach zuhören.`;
   }
   return "Weiter im Rollenspiel an derselben Stelle. Keine neue Begrüßung, außer der Nutzer startet neu.";
+}
+
+function handoffSection(handoff: string | undefined, personaId: PersonaId): string {
+  if (personaId !== "entscheider" || !handoff) return "";
+  return [
+    "# Interne Übergabe",
+    "Das Empfangsgespräch hast du nicht gehört. Du bekommst kein Transkript und keine weiteren Details.",
+    `Der Empfang hat dir nur diesen einen Satz gesagt: «${handoff}»`,
+    "Keine weiteren Inhalte aus dem Vorgespräch kennen, zitieren oder erfinden. Den Satz nicht dem Anrufer vorlesen.",
+  ].join("\n");
 }
 
 export function composeSession(input: ComposeInput, options: { opening?: boolean; transfer?: boolean } = {}): ComposeResult {
@@ -181,6 +199,8 @@ export function composeSession(input: ComposeInput, options: { opening?: boolean
     "",
     activeRole,
     "",
+    handoffSection(input.handoff, input.personaId),
+    "",
     scenarioSection,
     "",
     productSection,
@@ -197,6 +217,7 @@ export function composeSession(input: ComposeInput, options: { opening?: boolean
   const cue = modeCue(input.mode, persona, {
     opening: Boolean(options.opening),
     transfer: Boolean(options.transfer),
+    handoff: input.handoff,
   });
 
   return {
@@ -217,6 +238,7 @@ export function composeSession(input: ComposeInput, options: { opening?: boolean
     mode: input.mode,
     traineeRole: input.traineeRole,
     difficulty: input.difficulty,
+    handoff: input.handoff,
   };
 }
 

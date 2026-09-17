@@ -62,12 +62,23 @@ Der Server komponiert die Session-Instructions mit kurzen, benannten Abschnitten
 - **SDR | AE** — welche Leistung die Simulation (und das Debrief) erwartet.
 - **Szenario** — Default: Cold Outbound RheinSicher AG (regulierte Kompositversicherung). Weitere Gesprächsarten sind als Stub im Dropdown.
 - **Schwierigkeit 1–5**
-- **Empfang | Entscheider** — Gegenstelle; Wechsel mitten im Call per `session.update`.
+- **Empfang | Entscheider** — Gegenstelle. Umschalten mitten im Call startet eine **neue Realtime-Session** (andere Stimme; der Entscheider bekommt kein Empfangs-Transkript). Stellt der Empfang durch, wechselt die UI automatisch auf Entscheider.
 - **Rollenspiel / Pause / Demo / Debrief**
 
 Sprachbefehle: «Ring, Ring» · «Kurz raus aus dem Gespräch» · «Weiter» · «Neustart» · «Mach es schwieriger/einfacher» · «Übernimm beide Rollen» · «Gespräch beenden» · «Gib mir Feedback».
 
 Live-Transkript und lokale Gesprächshistorie (Browser `localStorage`).
+
+## Durchstellung Empfang → Entscheider
+
+Wenn Sandra Keller durchstellt (Realtime-Tool `transfer_to_entscheider` oder erkennbare Durchstell-Floskel), gilt derselbe Pfad wie der teal **Empfang | Entscheider**-Schalter:
+
+1. UI wechselt auf Entscheider (Dr. Markus Weber).
+2. Status **«Weiterleitung an Entscheider…»**.
+3. Neues Ephemeral-Token / neuer WebRTC-Call mit Stimme `cedar` (Empfang bleibt `coral` in `personas/*.json`).
+4. Der Entscheider erhält nur **einen Handoff-Satz** (Nutzen + Name), kein Empfangs-Transkript.
+
+Keine zusätzlichen Env-Variablen. Weiterhin `OPENAI_API_KEY` (pflicht) plus optional `OPENAI_REALTIME_MODEL` und `OPENAI_REASONING_EFFORT`.
 
 ## Default-Szenario
 
@@ -76,7 +87,7 @@ Logicc-AE oder -SDR ruft **RheinSicher AG** an (BaFin-Umfeld). Zuerst Sandra Kel
 ## Limits
 
 - Produkt- und Branchenmodule sind **Stubs**; Dateien ersetzen, ohne `core-simulation.md` umzuschreiben.
-- Stimme nach erstem Audio in der Session nicht wechselbar.
+- Stimme nach erstem Audio in **derselben** Realtime-Session nicht wechselbar — deshalb startet die Durchstellung eine neue Session.
 - Session ca. 60 Min. «Ring, Ring» ohne Klick startet das Mikrofon in manchen Browsern nicht — erst «Gespräch starten».
 - Nicht als reine Statikseite deployen: `/api/health`, `/api/catalog`, `/api/compose` und `/api/session` brauchen die Vercel-Funktion.
 

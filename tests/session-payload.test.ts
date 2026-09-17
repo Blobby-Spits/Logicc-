@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { handleApiRequest } from "../server/http.ts";
 import { composeSession } from "../server/compose.ts";
-import { buildRealtimeSessionConfig } from "../server/session.ts";
+import { buildRealtimeSessionConfig, toolsForPersona } from "../server/session.ts";
+import { TRANSFER_TOOL_NAME } from "../shared/handoff.ts";
 
 const ctx = { apiKey: "", model: "gpt-realtime-2", reasoningEffort: "low" as const };
 
@@ -33,7 +34,14 @@ describe("session payload", () => {
     expect(clientSecretsBody.session.audio.output.format.rate).toBe(24000);
   });
 
-  it("nutzt cedar für den Entscheider", () => {
+  it("nutzt cedar für den Entscheider und eine andere Stimme für den Empfang", () => {
+    const empfang = composeSession({
+      scenarioId: "rheinsicher-outbound",
+      personaId: "empfang",
+      traineeRole: "ae",
+      difficulty: 3,
+      mode: "roleplay",
+    });
     const composed = composeSession({
       scenarioId: "rheinsicher-outbound",
       personaId: "entscheider",
@@ -41,7 +49,53 @@ describe("session payload", () => {
       difficulty: 3,
       mode: "roleplay",
     });
+    expect(empfang.persona.voice).toBe("coral");
     expect(composed.persona.voice).toBe("cedar");
+    expect(composed.persona.voice).not.toBe(empfang.persona.voice);
+  });
+
+  it("hängt das Durchstell-Tool nur an Empfang-Sessions", () => {
+    const empfang = buildRealtimeSessionConfig({
+      instructions: "test",
+      voice: "coral",
+      model: "gpt-realtime-2",
+      reasoningEffort: "low",
+      tools: toolsForPersona("empfang"),
+    });
+    const entscheider = buildRealtimeSessionConfig({
+      instructions: "test",
+      voice: "cedar",
+      model: "gpt-realtime-2",
+      reasoningEffort: "low",
+      tools: toolsForPersona("entscheider"),
+    });
+    expect(empfang.audio.output.voice).toBe("coral");
+    expect(entscheider.audio.output.voice).toBe("cedar");
+    expect(empfang.tools?.[0]?.name).toBe(TRANSFER_TOOL_NAME);
+    expect(empfang.tool_choice).toBe("auto");
+    expect(entscheider.tools).toBeUndefined();
+  });
+
+  it("gibt dem Entscheider nur den Handoff-Satz, kein Empfangs-Transkript", () => {
+    const handoff = "Hey, hier ist jemand zu KI in der Kanzlei / Kosten sparen, Name Strauss.";
+    const composed = composeSession(
+      {
+        scenarioId: "rheinsicher-outbound",
+        personaId: "entscheider",
+        traineeRole: "ae",
+        difficulty: 4,
+        mode: "roleplay",
+        handoff,
+      },
+      { transfer: true },
+    );
+    expect(composed.instructions).toContain("# Interne Übergabe");
+    expect(composed.instructions).toContain(handoff);
+    expect(composed.instructions).toContain("kein Transkript");
+    expect(composed.cue).toContain(handoff);
+    expect(composed.cue).toMatch(/Weber/);
+    expect(composed.instructions).not.toContain("GANZES EMPFANGSGESPRÄCH");
+    expect(composed.handoff).toBe(handoff);
   });
 });
 
@@ -71,6 +125,27 @@ describe("api", () => {
     const body = result.body as { instructions: string; preview: string };
     expect(body.instructions).toContain("Modus Debrief");
     expect(body.preview).not.toContain("Kontrolle und Risiko reduzieren");
+  });
+
+  it("komponiert Entscheider-Transfer nur mit Handoff", async () => {
+    const result = await handleApiRequest(
+      "POST",
+      "/api/compose",
+      {
+        personaId: "entscheider",
+        scenarioId: "rheinsicher-outbound",
+        transfer: true,
+        handoff: "Hey, hier ist jemand zu KI in der Kanzlei, Name Strauss.",
+        transcript: "GANZES EMPFANGSGESPRÄCH bitte nicht an den Entscheider geben.",
+      },
+      ctx,
+    );
+    expect(result.status).toBe(200);
+    const body = result.body as { instructions: string; cue: string; persona: { voice: string } };
+    expect(body.persona.voice).toBe("cedar");
+    expect(body.instructions).toContain("Name Strauss");
+    expect(body.instructions).not.toContain("GANZES EMPFANGSGESPRÄCH");
+    expect(body.cue).toMatch(/Du weißt intern nur/);
   });
 
   it("lehnt unbekannte personaId ab", async () => {

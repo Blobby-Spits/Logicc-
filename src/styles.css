@@ -389,6 +389,11 @@ h1 {
   border-color: rgba(208, 138, 60, 0.35);
 }
 
+.turn.system {
+  border-color: rgba(63, 143, 134, 0.45);
+  background: rgba(63, 143, 134, 0.1);
+}
+
 .turn.live p {
   opacity: 0.8;
 }

@@ -52,6 +52,7 @@ export interface ComposePayload {
   mode: AppMode;
   traineeRole: TraineeRole;
   difficulty: number;
+  handoff?: string;
 }
 
 export interface TranscriptTurn {

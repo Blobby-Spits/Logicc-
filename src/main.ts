@@ -2,7 +2,13 @@ import { composePrompt, createSession, fetchCatalog, fetchHealth } from "./api.t
 import { loadHistory, saveHistory, turnsForHistory } from "./history.ts";
 import { RealtimeCall } from "./realtime.ts";
 import { detectVoiceCommand } from "../shared/commands.ts";
-import type { AppMode, Catalog, Persona, PersonaId, TraineeRole } from "./types.ts";
+import {
+  buildHandoffSentence,
+  clampHandoff,
+  TRANSFER_STATUS_COPY,
+  TRANSFER_TOOL,
+} from "../shared/handoff.ts";
+import type { AppMode, Catalog, Persona, PersonaId, SessionSecret, TraineeRole } from "./types.ts";
 import {
   fillPersonaCard,
   modeLabel,
@@ -46,11 +52,12 @@ let difficulty = 3;
 let connected = false;
 let reasoningEffort = "low";
 let handlingCommand = false;
+let transferring = false;
 
 const call = new RealtimeCall({
-  onStatus: (status) => {
-    setStatus(statusEl, status);
-    callButton.disabled = status === "connecting" || status === "switching";
+  onStatus: (status, detail) => {
+    setStatus(statusEl, status, detail);
+    callButton.disabled = status === "connecting" || status === "switching" || transferring;
     if (status === "connecting") callButton.textContent = "Verbinde …";
     if (status === "listening" || status === "user_speaking" || status === "ai_speaking") {
       callButton.textContent = "Auflegen";
@@ -72,6 +79,9 @@ const call = new RealtimeCall({
   },
   onUserUtterance: (text) => {
     void handleUtterance(text);
+  },
+  onTransferRequest: (handoff) => {
+    void runAutoTransfer(handoff);
   },
 });
 
@@ -129,6 +139,21 @@ function persistCall(finalMode: AppMode): void {
   renderHistory();
 }
 
+function connectConfig(
+  secret: SessionSecret,
+  extras: { keepTranscript?: boolean; keepMic?: boolean; statusDetail?: string } = {},
+) {
+  return {
+    instructions: secret.instructions,
+    cue: secret.cue,
+    reasoningEffort,
+    voice: secret.persona.voice,
+    tools: secret.persona.id === "empfang" ? [TRANSFER_TOOL] : [],
+    autoTransfer: secret.persona.id === "empfang" && mode === "roleplay",
+    ...extras,
+  };
+}
+
 async function pushSession(note: string, extra: { opening?: boolean; transfer?: boolean } = {}): Promise<void> {
   const composed = await composePrompt({ ...requestBody(), ...extra });
   promptEl.textContent = composed.preview;
@@ -137,31 +162,124 @@ async function pushSession(note: string, extra: { opening?: boolean; transfer?: 
   call.applyInstructions(composed.instructions, composed.cue, note, reasoningEffort);
 }
 
-async function selectPersona(id: PersonaId): Promise<void> {
+async function reconnectLiveSession(extra: {
+  opening?: boolean;
+  transfer?: boolean;
+  handoff?: string;
+  statusDetail?: string;
+}): Promise<void> {
+  setStatus(statusEl, "switching", extra.statusDetail);
+  callButton.disabled = true;
+  const secret = await createSession({ ...requestBody(), ...extra });
+  promptEl.textContent = secret.preview;
+  personas = personas.map((persona) => (persona.id === secret.persona.id ? secret.persona : persona));
+  if (extra.statusDetail) call.pushSystemNote(extra.statusDetail);
+  await call.connect(
+    secret.value,
+    connectConfig(secret, {
+      keepTranscript: true,
+      keepMic: true,
+      statusDetail: extra.statusDetail,
+    }),
+  );
+}
+
+async function adoptPersona(
+  id: PersonaId,
+  extra: { transfer?: boolean; opening?: boolean; handoff?: string; statusDetail?: string } = {},
+): Promise<void> {
+  const previous = personaId;
   personaId = id;
   syncUi();
-  if (call.isConnected) {
-    await pushSession(`Rolle wechselt zu ${currentPersona().name}.`, { transfer: true });
-  } else {
+  if (!call.isConnected) {
     try {
-      const composed = await composePrompt(requestBody());
+      const composed = await composePrompt({ ...requestBody(), ...extra });
       promptEl.textContent = composed.preview;
     } catch {
       /* Preview optional */
     }
+    return;
   }
+  try {
+    await reconnectLiveSession(extra);
+  } catch (error) {
+    personaId = previous;
+    syncUi();
+    const message = error instanceof Error ? error.message : "Rollenwechsel fehlgeschlagen.";
+    if (message !== "mic-denied") {
+      errorEl.hidden = false;
+      errorEl.textContent = message;
+    }
+    setStatus(statusEl, call.isConnected ? "listening" : "error");
+    throw error;
+  }
+}
+
+async function runAutoTransfer(handoffFromTool: string): Promise<void> {
+  if (transferring || handlingCommand) return;
+  if (personaId !== "empfang" || mode !== "roleplay" || !call.isConnected) return;
+  transferring = true;
+  setStatus(statusEl, "switching", TRANSFER_STATUS_COPY);
+  try {
+    const handoff = clampHandoff(handoffFromTool) || buildHandoffSentence(call.snapshot());
+    await adoptPersona("entscheider", {
+      transfer: true,
+      handoff,
+      statusDetail: TRANSFER_STATUS_COPY,
+    });
+  } catch {
+    /* Fehlermeldung setzt adoptPersona */
+  } finally {
+    transferring = false;
+    callButton.disabled = false;
+  }
+}
+
+async function selectPersona(id: PersonaId): Promise<void> {
+  if (id === personaId) return;
+  if (call.isConnected && id === "entscheider") {
+    const handoff = buildHandoffSentence(call.snapshot());
+    transferring = true;
+    try {
+      await adoptPersona("entscheider", {
+        transfer: true,
+        handoff,
+        statusDetail: TRANSFER_STATUS_COPY,
+      });
+    } catch {
+      /* Fehlermeldung setzt adoptPersona */
+    } finally {
+      transferring = false;
+      callButton.disabled = false;
+    }
+    return;
+  }
+  if (call.isConnected) {
+    transferring = true;
+    try {
+      await adoptPersona(id, { transfer: true });
+    } catch {
+      /* Fehlermeldung setzt adoptPersona */
+    } finally {
+      transferring = false;
+      callButton.disabled = false;
+    }
+    return;
+  }
+  await adoptPersona(id);
 }
 
 async function setMode(next: AppMode, note?: string): Promise<void> {
   mode = next;
   syncUi();
+  call.setAutoTransfer(personaId === "empfang" && next === "roleplay");
   if (call.isConnected) {
     await pushSession(note ?? `Modus: ${modeLabel(next)}.`);
   }
 }
 
 async function handleUtterance(text: string): Promise<void> {
-  if (handlingCommand) return;
+  if (handlingCommand || transferring) return;
   const command = detectVoiceCommand(text);
   if (!command) return;
   handlingCommand = true;
@@ -174,6 +292,7 @@ async function handleUtterance(text: string): Promise<void> {
       }
       mode = "roleplay";
       syncUi();
+      call.setAutoTransfer(personaId === "empfang");
       await pushSession("Neustart der Szene.", { opening: true });
       return;
     }
@@ -188,6 +307,7 @@ async function handleUtterance(text: string): Promise<void> {
     if (command === "restart") {
       mode = "roleplay";
       syncUi();
+      call.setAutoTransfer(personaId === "empfang");
       await pushSession("Neustart.", { opening: true });
       return;
     }
@@ -222,6 +342,7 @@ async function handleUtterance(text: string): Promise<void> {
 }
 
 async function hangUp(): Promise<void> {
+  transferring = false;
   await call.disconnect();
   connected = false;
   muteButton.classList.remove("is-on");
@@ -229,6 +350,7 @@ async function hangUp(): Promise<void> {
   muteButton.textContent = "Mikro stumm";
   setStatus(statusEl, "idle", "Aufgelegt");
   callButton.textContent = "Gespräch starten";
+  callButton.disabled = false;
   mode = "roleplay";
   syncUi();
 }
@@ -282,11 +404,7 @@ callButton.addEventListener("click", async () => {
   try {
     const secret = await createSession(requestBody());
     promptEl.textContent = secret.preview;
-    await call.connect(secret.value, {
-      instructions: secret.instructions,
-      cue: secret.cue,
-      reasoningEffort,
-    });
+    await call.connect(secret.value, connectConfig(secret));
     connected = true;
     callButton.textContent = "Auflegen";
     setStatus(statusEl, "listening");

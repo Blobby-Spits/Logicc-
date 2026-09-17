@@ -1,4 +1,5 @@
-import type { PersonaPublic, ReasoningEffort, RealtimeSessionConfig } from "./types.ts";
+import { TRANSFER_TOOL } from "../shared/handoff.ts";
+import type { PersonaPublic, ReasoningEffort, RealtimeFunctionTool, RealtimeSessionConfig } from "./types.ts";
 
 export const DEFAULT_REALTIME_MODEL = "gpt-realtime-2";
 export const DEFAULT_REASONING_EFFORT: ReasoningEffort = "low";
@@ -6,18 +7,25 @@ export const TRANSCRIPTION_MODEL = "gpt-4o-mini-transcribe";
 /** GA-Realtime-PCM ist für Input und Output fest auf 24 kHz. */
 export const PCM_AUDIO_FORMAT = { type: "audio/pcm", rate: 24000 } as const;
 
+export function toolsForPersona(personaId: string): RealtimeFunctionTool[] {
+  return personaId === "empfang" ? [TRANSFER_TOOL] : [];
+}
+
 export function buildRealtimeSessionConfig(options: {
   instructions: string;
   voice: string;
   model: string;
   reasoningEffort: ReasoningEffort;
+  tools?: RealtimeFunctionTool[];
 }): RealtimeSessionConfig {
+  const tools = options.tools?.length ? options.tools : undefined;
   return {
     type: "realtime",
     model: options.model,
     instructions: options.instructions,
     output_modalities: ["audio"],
     reasoning: { effort: options.reasoningEffort },
+    ...(tools ? { tools, tool_choice: "auto" as const } : {}),
     audio: {
       input: {
         format: PCM_AUDIO_FORMAT,
@@ -73,6 +81,7 @@ export async function mintClientSecret(options: {
     voice: options.persona.voice,
     model: options.model,
     reasoningEffort: options.reasoningEffort,
+    tools: toolsForPersona(options.persona.id),
   });
   const response = await fetch("https://api.openai.com/v1/realtime/client_secrets", {
     method: "POST",

@@ -8,6 +8,7 @@ export interface SessionRequest {
   mode: AppMode;
   opening?: boolean;
   transfer?: boolean;
+  handoff?: string;
 }
 
 async function readJson<T>(response: Response): Promise<T> {

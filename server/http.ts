@@ -61,7 +61,11 @@ export async function handleApiRequest(
   if (method === "POST" && pathname === "/api/session") {
     let composed;
     try {
-      composed = composeSession(parseComposeInput(body), { opening: true });
+      const input = parseComposeInput(body);
+      const flags = body && typeof body === "object" ? (body as { opening?: boolean; transfer?: boolean }) : {};
+      const transfer = Boolean(flags.transfer);
+      const opening = flags.opening !== undefined ? Boolean(flags.opening) : !transfer;
+      composed = composeSession(input, { opening, transfer });
     } catch (error) {
       const message = error instanceof Error ? error.message : "Ungültige Session-Anfrage.";
       return { status: 400, body: { error: message } };
@@ -98,6 +102,7 @@ export async function handleApiRequest(
           mode: composed.mode,
           traineeRole: composed.traineeRole,
           difficulty: composed.difficulty,
+          handoff: composed.handoff,
         },
       };
     } catch (error) {

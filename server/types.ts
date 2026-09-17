@@ -100,6 +100,8 @@ export interface ComposeInput {
   traineeRole: TraineeRole;
   difficulty: number;
   mode: AppMode;
+  /** Ein Satz vom Empfang an den Entscheider — kein Empfangs-Transkript. */
+  handoff?: string;
 }
 
 export interface ComposeResult {
@@ -113,6 +115,7 @@ export interface ComposeResult {
   mode: AppMode;
   traineeRole: TraineeRole;
   difficulty: number;
+  handoff?: string;
 }
 
 /** PCM 24 kHz — OpenAI-GA-Realtime verlangt `audio/pcm` inkl. `rate`. */
@@ -121,12 +124,25 @@ export interface RealtimePcmAudioFormat {
   rate: 24000;
 }
 
+export interface RealtimeFunctionTool {
+  type: "function";
+  name: string;
+  description: string;
+  parameters: {
+    type: "object";
+    properties: Record<string, { type: string; description?: string }>;
+    required?: string[];
+  };
+}
+
 export interface RealtimeSessionConfig {
   type: "realtime";
   model: string;
   instructions: string;
   output_modalities: Array<"audio">;
   reasoning: { effort: ReasoningEffort };
+  tools?: RealtimeFunctionTool[];
+  tool_choice?: "auto" | "none";
   audio: {
     input: {
       format: RealtimePcmAudioFormat;

@@ -31,9 +31,11 @@ describe("module split", () => {
       mode: "roleplay",
     });
     expect(empfang.instructions).toContain("Sandra Keller");
+    expect(empfang.instructions).toContain("transfer_to_entscheider");
     expect(empfang.instructions).toContain("Vertriebslogik SDR");
     expect(empfang.instructions).not.toContain("Vertriebslogik Account Executive");
     expect(entscheider.instructions).toContain("Markus Weber");
+    expect(entscheider.instructions).toContain("Interne Übergabe");
     expect(entscheider.instructions).toContain("Kontrolle und Risiko reduzieren");
     expect(entscheider.preview).not.toContain("Kontrolle und Risiko reduzieren");
     expect(entscheider.instructions).toContain("Produktmodul");
@@ -65,6 +67,13 @@ describe("module split", () => {
   it("parst Compose-Input und Persona-IDs", () => {
     expect(parseComposeInput({ personaId: "entscheider", traineeRole: "sdr", difficulty: 9 }).difficulty).toBe(5);
     expect(parseComposeInput({ personaId: "empfang" }).traineeRole).toBe("ae");
+    expect(parseComposeInput({ personaId: "empfang", handoff: "Hey, nicht für Empfang." }).handoff).toBeUndefined();
+    expect(
+      parseComposeInput({
+        personaId: "entscheider",
+        handoff: "Hey, hier ist jemand zu KI, Name Strauss. Zweiter Satz.",
+      }).handoff,
+    ).toBe("Hey, hier ist jemand zu KI, Name Strauss.");
     expect(isPersonaId("empfang")).toBe(true);
     expect(isPersonaId("chef")).toBe(false);
     expect(() => parseComposeInput({})).toThrow(/personaId/);

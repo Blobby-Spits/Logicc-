@@ -1,12 +1,26 @@
+import { extractTransferHandoff, looksLikeTransferSpeech, TRANSFER_TOOL } from "../shared/handoff.ts";
 import type { CallStatus, TranscriptTurn } from "./types.ts";
 
 const REALTIME_CALLS_URL = "https://api.openai.com/v1/realtime/calls";
 
+export interface RealtimeConnectConfig {
+  instructions: string;
+  cue: string;
+  reasoningEffort?: string;
+  voice?: string;
+  tools?: Array<typeof TRANSFER_TOOL>;
+  autoTransfer?: boolean;
+  keepTranscript?: boolean;
+  keepMic?: boolean;
+  statusDetail?: string;
+}
+
 export interface RealtimeHandlers {
-  onStatus: (status: CallStatus) => void;
+  onStatus: (status: CallStatus, detail?: string) => void;
   onTranscript: (turns: TranscriptTurn[]) => void;
   onError: (message: string) => void;
   onUserUtterance?: (text: string) => void;
+  onTransferRequest?: (handoff: string) => void;
 }
 
 function waitForIce(pc: RTCPeerConnection, timeoutMs = 2500): Promise<void> {
@@ -34,6 +48,11 @@ export class RealtimeCall {
   private userLiveId: string | null = null;
   private muted = false;
   private closing = false;
+  private autoTransfer = false;
+  private transferSignaled = false;
+  private pendingToolHandoff: string | null = null;
+  private sessionVoice = "";
+  private sessionTools: Array<typeof TRANSFER_TOOL> = [];
 
   constructor(private readonly handlers: RealtimeHandlers) {
     this.remoteAudio = document.createElement("audio");
@@ -51,14 +70,32 @@ export class RealtimeCall {
     return this.muted;
   }
 
-  async connect(ephemeralKey: string, config: { instructions: string; cue: string; reasoningEffort?: string }): Promise<void> {
-    await this.disconnect();
+  setAutoTransfer(enabled: boolean): void {
+    this.autoTransfer = enabled;
+  }
+
+  pushSystemNote(text: string): void {
+    this.pushTurn("system", text);
+  }
+
+  async connect(ephemeralKey: string, config: RealtimeConnectConfig): Promise<void> {
+    await this.disconnect({ keepMic: Boolean(config.keepMic) });
     this.closing = false;
-    this.turns = [];
+    this.transferSignaled = false;
+    this.pendingToolHandoff = null;
+    this.autoTransfer = Boolean(config.autoTransfer);
+    this.sessionVoice = config.voice ?? "";
+    this.sessionTools = config.tools ?? [];
     this.assistantBuffer = "";
     this.userLiveId = null;
-    this.emitTranscript();
-    this.handlers.onStatus("connecting");
+    if (!config.keepTranscript) {
+      this.turns = [];
+      this.emitTranscript();
+    } else {
+      this.turns = this.turns.filter((turn) => !turn.live);
+      this.emitTranscript();
+    }
+    this.handlers.onStatus("connecting", config.statusDetail);
 
     const pc = new RTCPeerConnection({
       iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
@@ -84,13 +121,7 @@ export class RealtimeCall {
     };
 
     try {
-      this.mic = await navigator.mediaDevices.getUserMedia({
-        audio: {
-          echoCancellation: true,
-          noiseSuppression: true,
-          autoGainControl: true,
-        },
-      });
+      this.mic = await this.acquireMic();
     } catch {
       this.handlers.onError("Mikrofonzugriff verweigert. Bitte im Browser erlauben und erneut starten.");
       this.handlers.onStatus("error");
@@ -99,6 +130,7 @@ export class RealtimeCall {
     }
 
     for (const track of this.mic.getTracks()) {
+      track.enabled = !this.muted;
       pc.addTrack(track, this.mic);
     }
 
@@ -152,7 +184,7 @@ export class RealtimeCall {
     await pc.setRemoteDescription({ type: "answer", sdp: answerSdp });
     await opened;
 
-    this.sendSessionUpdate(config.instructions, config.cue, config.reasoningEffort);
+    this.sendSessionUpdate(config.instructions, config.cue, config.reasoningEffort, { includeVoice: true });
     this.handlers.onStatus("listening");
   }
 
@@ -161,7 +193,7 @@ export class RealtimeCall {
     this.handlers.onStatus("switching");
     this.pushTurn("system", note);
     this.send({ type: "response.cancel" });
-    this.sendSessionUpdate(instructions, cue, reasoningEffort);
+    this.sendSessionUpdate(instructions, cue, reasoningEffort, { includeVoice: false });
   }
 
   setMuted(muted: boolean): void {
@@ -171,21 +203,38 @@ export class RealtimeCall {
     });
   }
 
-  async disconnect(): Promise<void> {
+  async disconnect(options: { keepMic?: boolean } = {}): Promise<void> {
     this.closing = true;
     this.dc?.close();
     this.dc = null;
-    this.pc?.getSenders().forEach((sender) => sender.track?.stop());
+    this.pc?.getSenders().forEach((sender) => {
+      if (options.keepMic && sender.track?.kind === "audio") return;
+      sender.track?.stop();
+    });
     this.pc?.close();
     this.pc = null;
-    this.mic?.getTracks().forEach((track) => track.stop());
-    this.mic = null;
+    if (!options.keepMic) {
+      this.mic?.getTracks().forEach((track) => track.stop());
+      this.mic = null;
+      this.muted = false;
+    }
     this.remoteAudio.srcObject = null;
-    this.muted = false;
   }
 
   snapshot(): TranscriptTurn[] {
     return this.turns.filter((turn) => !turn.live);
+  }
+
+  private async acquireMic(): Promise<MediaStream> {
+    const live = this.mic?.getTracks().some((track) => track.readyState === "live");
+    if (this.mic && live) return this.mic;
+    return navigator.mediaDevices.getUserMedia({
+      audio: {
+        echoCancellation: true,
+        noiseSuppression: true,
+        autoGainControl: true,
+      },
+    });
   }
 
   private send(event: Record<string, unknown>): void {
@@ -193,22 +242,33 @@ export class RealtimeCall {
     this.dc.send(JSON.stringify(event));
   }
 
-  private sendSessionUpdate(instructions: string, cue: string, reasoningEffort = "low"): void {
-    this.send({
-      type: "session.update",
-      session: {
-        type: "realtime",
-        instructions,
-        output_modalities: ["audio"],
-        reasoning: { effort: reasoningEffort },
-        audio: {
-          input: {
-            transcription: { model: "gpt-4o-mini-transcribe", language: "de" },
-            turn_detection: { type: "semantic_vad" },
-          },
-        },
+  private sendSessionUpdate(
+    instructions: string,
+    cue: string,
+    reasoningEffort = "low",
+    extras: { includeVoice: boolean },
+  ): void {
+    const audio: Record<string, unknown> = {
+      input: {
+        transcription: { model: "gpt-4o-mini-transcribe", language: "de" },
+        turn_detection: { type: "semantic_vad" },
       },
-    });
+    };
+    if (extras.includeVoice && this.sessionVoice) {
+      audio.output = { voice: this.sessionVoice };
+    }
+    const session: Record<string, unknown> = {
+      type: "realtime",
+      instructions,
+      output_modalities: ["audio"],
+      reasoning: { effort: reasoningEffort },
+      audio,
+    };
+    if (this.sessionTools.length > 0) {
+      session.tools = this.sessionTools;
+      session.tool_choice = "auto";
+    }
+    this.send({ type: "session.update", session });
 
     this.send({
       type: "response.create",
@@ -219,7 +279,21 @@ export class RealtimeCall {
     });
   }
 
+  private maybeSignalTransfer(): void {
+    if (!this.autoTransfer || this.transferSignaled || this.closing) return;
+    const toolHandoff = this.pendingToolHandoff;
+    const lastAssistant = [...this.turns]
+      .reverse()
+      .find((turn) => turn.role === "assistant" && !turn.live);
+    if (toolHandoff === null && !(lastAssistant && looksLikeTransferSpeech(lastAssistant.text))) {
+      return;
+    }
+    this.transferSignaled = true;
+    this.handlers.onTransferRequest?.(toolHandoff ?? "");
+  }
+
   private onServerEvent(raw: string): void {
+    if (this.closing) return;
     let event: Record<string, unknown>;
     try {
       event = JSON.parse(raw) as Record<string, unknown>;
@@ -228,6 +302,10 @@ export class RealtimeCall {
     }
 
     const type = String(event.type ?? "");
+    const toolHandoff = extractTransferHandoff(event);
+    if (toolHandoff !== null) {
+      this.pendingToolHandoff = toolHandoff;
+    }
 
     if (type === "error" || type === "response.failed") {
       const error = event.error;
@@ -320,6 +398,7 @@ export class RealtimeCall {
         this.assistantBuffer = "";
       }
       this.handlers.onStatus("listening");
+      if (type === "response.done") this.maybeSignalTransfer();
     }
   }
 
