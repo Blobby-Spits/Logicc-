@@ -2,7 +2,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { EMBEDDED_ASSETS } from "../server/assets.ts";
-import { parseJsonBody, resolveApiPathname } from "../server/http.ts";
+import { parseJsonBody, resolveApiPathname, isLocalApiRequest } from "../server/http.ts";
 import { createApiContext, parseReasoningEffort } from "../server/env.ts";
 import { resolveDataRoot } from "../server/load.ts";
 import { handleVercelApi, urlFromVercelRequest } from "../server/vercel-handler.ts";
@@ -14,6 +14,11 @@ describe("vercel api adapter", () => {
     expect(resolveApiPathname("https://example.vercel.app/api/catalog")).toBe("/api/catalog");
     expect(resolveApiPathname("/session")).toBe("/api/session");
     expect(resolveApiPathname("/compose/")).toBe("/api/compose");
+    expect(isLocalApiRequest("/api/health")).toBe(true);
+    expect(isLocalApiRequest("/api/compose?x=1")).toBe(true);
+    expect(isLocalApiRequest("/src/main.ts")).toBe(false);
+    expect(isLocalApiRequest("/src/styles.css")).toBe(false);
+    expect(isLocalApiRequest("/")).toBe(false);
   });
 
   it("rekonstruiert die URL aus dem Catch-all-Query", () => {

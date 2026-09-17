@@ -163,14 +163,19 @@ export function resolveApiPathname(url: string | undefined): string {
   return pathname === "/" ? "/api" : `/api${pathname}`;
 }
 
+export function isLocalApiRequest(url: string | undefined): boolean {
+  const raw = url ?? "/";
+  const pathname = raw.split("?")[0] ?? "/";
+  return pathname === "/api" || pathname.startsWith("/api/");
+}
+
 export function createApiMiddleware(ctx: ApiContext) {
   return async function logiccApi(
     req: IncomingMessage,
     res: ServerResponse,
     next: () => void,
   ): Promise<void> {
-    const pathname = resolveApiPathname(req.url);
-    if (!pathname.startsWith("/api/")) {
+    if (!isLocalApiRequest(req.url)) {
       next();
       return;
     }
@@ -178,7 +183,7 @@ export function createApiMiddleware(ctx: ApiContext) {
     try {
       const method = req.method ?? "GET";
       const body = method === "POST" || method === "PUT" ? await readBody(req) : {};
-      const result = await handleApiRequest(method, pathname, body, ctx);
+      const result = await handleApiRequest(method, resolveApiPathname(req.url), body, ctx);
       res.statusCode = result.status;
       res.setHeader("Content-Type", "application/json; charset=utf-8");
       res.setHeader("Cache-Control", "no-store");

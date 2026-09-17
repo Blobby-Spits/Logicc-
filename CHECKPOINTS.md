@@ -4,6 +4,7 @@
 - Automatische Durchstellung Empfang → Entscheider: Realtime-Tool `transfer_to_entscheider` plus Fallback auf Durchstell-Floskeln; UI wechselt auf den teal Entscheider-Toggle inkl. Status «Weiterleitung an Entscheider…».
 - Neue Realtime-Session nach Transfer (Stimme `coral` vs. `cedar`); Entscheider bekommt nur einen Handoff-Satz (Modell-Argument oder Template aus dem Empfangsgespräch), kein Transkript.
 - Tests für Handoff, Tool-Payload und Kontextisolation; `scripts/embed-assets.mjs` hält `server/assets.ts` synchron. Keine neuen Env-Variablen.
+- Vite-API-Middleware bedient nur `/api/*`, damit `/src/main.ts` und CSS nicht als API-404 landen; Browser-Check Empfang/Entscheider-Toggle inkl. Persona-Karten.
 
 ## CP-005 [16.09.2026 - 10:00]
 - Explizite `/api/*.js`-Functions laden ein gebündeltes `_handler.js` (Web-`fetch`); Prompts/JSON sind eingebettet, damit Production nicht an `.ts`-Imports oder `fs` scheitert.
