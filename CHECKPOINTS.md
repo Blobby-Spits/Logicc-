@@ -1,5 +1,10 @@
 # CHECKPOINTS
 
+## CP-007 [17.09.2026 - 11:57]
+- Vercel Production-Redeploy: Feature-Branch nach `main` gepusht, damit Git-Integration `logicc-peach.vercel.app` neu baut (bisher Production ohne Durchstellung).
+- Preview war bereits READY über Vercel-for-GitHub (`logicc-git-cursorblobby-auto-call-transfer-25cd-…vercel.app`); Production lag noch auf `e83fc94`.
+- Keine neuen Env-Variablen; `OPENAI_API_KEY` bleibt in Vercel Production/Preview.
+
 ## CP-006 [17.09.2026 - 08:01]
 - Automatische Durchstellung Empfang → Entscheider: Realtime-Tool `transfer_to_entscheider` plus Fallback auf Durchstell-Floskeln; UI wechselt auf den teal Entscheider-Toggle inkl. Status «Weiterleitung an Entscheider…».
 - Neue Realtime-Session nach Transfer (Stimme `coral` vs. `cedar`); Entscheider bekommt nur einen Handoff-Satz (Modell-Argument oder Template aus dem Empfangsgespräch), kein Transkript.
