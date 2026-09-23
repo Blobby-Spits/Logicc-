@@ -36,6 +36,13 @@ export const NEXT_MOVES = [
 ] as const;
 export type NextMoveId = (typeof NEXT_MOVES)[number];
 
+/**
+ * Demo Next-Best-Move machine (Madrid call stayed in discovery):
+ * suggest → AE asks → listening (leaning next intent) → evidence → suggest(next).
+ */
+export const MOVE_PHASES = ["suggest", "listening", "next_intent"] as const;
+export type MovePhase = (typeof MOVE_PHASES)[number];
+
 export const SIGNAL_IDS = [
   "pain_identified",
   "buying_motive_validated",
@@ -59,6 +66,71 @@ export const SIGNAL_IDS = [
   "business_impact_quantified",
 ] as const;
 export type SignalId = (typeof SIGNAL_IDS)[number];
+
+/** Rising-edge sprites over the call surface — fixed copy, never LLM prose. */
+export const KEY_MOMENT_IDS = [
+  "timeline",
+  "pain",
+  "decision_maker",
+  "budget",
+  "competitor",
+  "buying_signal",
+] as const;
+export type KeyMomentId = (typeof KEY_MOMENT_IDS)[number];
+
+export interface KeyMomentDef {
+  id: KeyMomentId;
+  signalId: SignalId;
+  /** Fire when this Noul/normalized score crosses upward through the threshold. */
+  threshold: number;
+  titleDe: string;
+  kickerDe: string;
+}
+
+export const KEY_MOMENT_SPRITES: readonly KeyMomentDef[] = [
+  {
+    id: "timeline",
+    signalId: "timeline_known",
+    threshold: 0.6,
+    titleDe: "Schlüsselmoment",
+    kickerDe: "BANT: Zeitachse",
+  },
+  {
+    id: "pain",
+    signalId: "pain_identified",
+    threshold: 0.7,
+    titleDe: "Schlüsselmoment",
+    kickerDe: "Schmerz genannt",
+  },
+  {
+    id: "decision_maker",
+    signalId: "decision_maker_identified",
+    threshold: 0.6,
+    titleDe: "Schlüsselmoment",
+    kickerDe: "Entscheider klar",
+  },
+  {
+    id: "budget",
+    signalId: "budget_discussed",
+    threshold: 0.6,
+    titleDe: "Schlüsselmoment",
+    kickerDe: "BANT: Budget",
+  },
+  {
+    id: "competitor",
+    signalId: "competitor_mentioned",
+    threshold: 0.55,
+    titleDe: "Schlüsselmoment",
+    kickerDe: "Wettbewerb genannt",
+  },
+  {
+    id: "buying_signal",
+    signalId: "buying_signal",
+    threshold: 0.5,
+    titleDe: "Schlüsselmoment",
+    kickerDe: "Kaufsignal",
+  },
+];
 
 export type CoachProvider = "mock" | "jev";
 
@@ -91,11 +163,25 @@ export interface LiveSignal {
 
 export interface NextBestMove {
   id: NextMoveId;
+  phase: MovePhase;
+  /** When `phase === "listening"`, the intent after the prospect answers. */
+  leaningId?: NextMoveId;
+  /** e.g. «Zuhören … (nächster Zug: Schmerz quantifizieren)» */
+  listeningHintDe?: string;
   titleDe: string;
   rationaleDe: string;
   sayDe: string;
   alternativesDe: string[];
   confidence: number;
+}
+
+export interface KeyMomentEvent {
+  id: KeyMomentId;
+  titleDe: string;
+  kickerDe: string;
+  signalId: SignalId;
+  value: number;
+  utteranceIndex: number;
 }
 
 export interface CloseAttribution {
@@ -116,7 +202,12 @@ export interface CoachSnapshot {
   nextStepProbability: number;
   deltaPts: number;
   sparkline: number[];
+  /** Top-3 weighted term deltas of the last utterance («What Moved the Number»). */
   moved: CloseAttribution[];
+  /** Center column: transcript vs attribution swap after a material delta. */
+  centerPanel: "transcript" | "moved";
+  /** Rising-edge sprite; null when none is active this frame. */
+  keyMoment: KeyMomentEvent | null;
   talkShareAe: number;
   latencyMs?: number;
   usage?: { input_tokens: number; output_tokens: number };
@@ -133,6 +224,7 @@ export const DEFAULT_NEXT_STEP_WEIGHTS = {
   buyer_engagement: 0.15,
   decision_maker_identified: 0.12,
   buying_motive_validated: 0.1,
+  buying_signal: 0.1,
   business_impact_quantified: 0.08,
   rapport: 0.08,
   next_step_agreed: 0.07,
@@ -148,6 +240,10 @@ export const COACH_CONFIDENCE = {
   advanceStage: 0.55,
   /** German transcripts: treat mid-confidence as “show, don’t insist”. */
   showCaution: 0.62,
+  /** AE question noul that flips suggest → listening. */
+  askedQuestion: 0.6,
+  /** Show «What Moved» instead of transcript when |deltaPts| ≥ this. */
+  movedPanelPts: 3,
 } as const;
 
 export type JevQuestionType = "choice" | "score" | "noul";

@@ -1,5 +1,10 @@
 # CHECKPOINTS
 
+## CP-009 [23.09.2026 - 15:59]
+- Plan nach Vollvideo-Analyse (~81 s) nachgezogen: bestätigtes Vier-Zonen-Layout, Key-Moment-Sprites als **MVP** (Trigger-Map Noul-Rising-Edge, keine LLM-Prosa), Next-Best-Move-Maschine suggest→listening→next, What-Moved-Center-Swap.
+- `shared/coach.ts`: `MOVE_PHASES`, `KEY_MOMENT_SPRITES`, `KeyMomentEvent`, `centerPanel`, Gewicht `buying_signal`; Mock-Kurve 33→42→52 bei Stage=discovery.
+- Weiterhin plan-only: keine Coach-UI, keine `/api/coach`-Route, kein TypeSafe-HTTP.
+
 ## CP-008 [23.09.2026 - 15:53]
 - Plan-only: Jev Sales Copilot für den Logicc Call Trainer dokumentiert in `docs/plans/jev-sales-copilot.md` (Architektur, Fragebogen Choice/Score/Noul, Mock-vs-Live, MVP→v2, Risiken).
 - Domain-Typen und Termin-Gewichte in `shared/coach.ts` — keine UI, keine `/api/coach`-Route, kein TypeSafe-HTTP.
