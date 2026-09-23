@@ -1,5 +1,10 @@
 # CHECKPOINTS
 
+## CP-008 [23.09.2026 - 15:53]
+- Plan-only: Jev Sales Copilot für den Logicc Call Trainer dokumentiert in `docs/plans/jev-sales-copilot.md` (Architektur, Fragebogen Choice/Score/Noul, Mock-vs-Live, MVP→v2, Risiken).
+- Domain-Typen und Termin-Gewichte in `shared/coach.ts` — keine UI, keine `/api/coach`-Route, kein TypeSafe-HTTP.
+- `.env.example`: kommentierte Stubs `TYPESAFE_API_KEY` / `JEV_API_KEY` ohne Fake-Secrets; Copilot bleibt serverseitig und ohne Key mockbar.
+
 ## CP-007 [17.09.2026 - 11:57]
 - Vercel Production-Redeploy: Feature-Branch nach `main` gepusht, damit Git-Integration `logicc-peach.vercel.app` neu baut (bisher Production ohne Durchstellung).
 - Preview war bereits READY über Vercel-for-GitHub (`logicc-git-cursorblobby-auto-call-transfer-25cd-…vercel.app`); Production lag noch auf `e83fc94`.

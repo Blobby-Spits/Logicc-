@@ -94,3 +94,7 @@ Logicc-AE oder -SDR ruft **RheinSicher AG** an (BaFin-Umfeld). Zuerst Sandra Kel
 ## xAI
 
 Umgesetzt ist OpenAI Realtime. xAI hat keine vergleichbare öffentliche Browser-WebRTC-API.
+
+## Geplant: Live-Copilot (Jev)
+
+Stilles Coach-Overlay während des Rollenspiels (Gesprächsphase, nächster Zug, Signale, Terminwahrscheinlichkeit), Entscheidungen über TypeSafe Jev, Stimme weiter über Realtime. **Noch nicht gebaut.** Ausführungsplan: [docs/plans/jev-sales-copilot.md](docs/plans/jev-sales-copilot.md). Key später als `TYPESAFE_API_KEY` oder `JEV_API_KEY` — ohne Key Mock.
